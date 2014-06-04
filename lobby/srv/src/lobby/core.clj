@@ -60,6 +60,10 @@
   (= password ((get-user username) :password)))
 ;
 ;
+(defn user-session-ok? [session username token]
+  (= token (session :token)))
+;
+;
 (defroutes handler
   (GET "/register/:username/:password" {{username :username password :password} :params session :session}
     (if (user-exists? username)
@@ -79,7 +83,14 @@
           (-> (response {:success true :token token})
               (assoc :session session)))
         (response {:success false}))
-      (response {:success false}))))
+      (response {:success false})))
+  (GET "/play/:username/:token" {{username :username token :token} :params session :session}
+    (println username token)
+    (if (user-exists? username)
+      (if (user-session-ok? session username token)
+        (response {:success true})
+        (response {:success false}))
+      (response {:need-register true}))))
 ;
 ;
 (def app

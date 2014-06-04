@@ -26,29 +26,6 @@ login.check = function(username, password) {
   return true;
 }
 
-login.login = function() {
-  console.log("login");
-  var username = $("#login-username").val();
-  var password = $("#login-password").val();
-  if(login.check(username, password)) {
-    $.ajax({
-      type: "GET", 
-      url: login.url + "login/" + username + "/" + password,
-      success: function(d) {
-        if(d.success) {
-          login.token = d.token;
-          $("#flash-login").html("<span class='success'>Success</span>");
-        } else {
-          $("#flash-login").html("<span class='failure'>Error</span>");
-        }
-      },
-      error: function() {
-        $("#flash-login").html("<span class='failure'>incorrect username or password</span>");
-      }
-    });
-  }
-}
-
 login.register = function() {
   console.log("register");
   var username = $("#login-username").val();
@@ -60,8 +37,17 @@ login.register = function() {
       success: function(d) {
         console.log(d);
         if(d.success) {
+          login.username = username;
           login.token = d.token;
           $("#flash-login").html("<span class='success'>Success</span>");
+          $("#login").remove();
+          $("#top").append(" \
+            <div id='play'> \
+            <div class='hero-unit'> \
+              <div> <a class='btn btn-small' href='javascript:asciiwar.play1v1()'>Play 1vs1</a> \
+            </div> \
+            </div> \
+            </div>");
         } else 
         if(d["already-exist?"]) {
           $("#flash-login").html("<span class='warn'>Username already exists</span>");
@@ -71,6 +57,38 @@ login.register = function() {
       },
       error: function() {
         $("#flash-login").html("<span class='failure'>internal error</span>");
+      }
+    });
+  }
+}
+
+login.login = function() {
+  console.log("login");
+  var username = $("#login-username").val();
+  var password = $("#login-password").val();
+  if(login.check(username, password)) {
+    $.ajax({
+      type: "GET", 
+      url: login.url + "login/" + username + "/" + password,
+      success: function(d) {
+        if(d.success) {
+          login.username = username;
+          login.token = d.token;
+          $("#flash-login").html("<span class='success'>Success</span>");
+          $("#login").remove();
+          $("#top").append(" \
+            <div id='play'> \
+            <div class='hero-unit'> \
+              <div> <a class='btn btn-small' href='javascript:asciiwar.play1v1()'>Play 1vs1</a> \
+            </div> \
+            </div> \
+            </div>");
+        } else {
+          $("#flash-login").html("<span class='failure'>Error</span>");
+        }
+      },
+      error: function() {
+        $("#flash-login").html("<span class='failure'>incorrect username or password</span>");
       }
     });
   }
