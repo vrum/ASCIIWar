@@ -1,0 +1,85 @@
+Binary directory: ./bin/
+Tue Jun 03 12:11:03 2014 ASCIIWar has started.
+Tue Jun 03 12:11:03 2014 Parsing configs...
+Tue Jun 03 12:11:03 2014 Configs parsing done.
+Tue Jun 03 12:11:03 2014 Master server at: 162.243.200.154
+Tue Jun 03 12:11:03 2014 Cmds initiated.
+Tue Jun 03 12:11:03 2014 Cmd stores initiated.
+Tue Jun 03 12:11:03 2014 Remote cmd stores initiated.
+Tue Jun 03 12:11:03 2014 Unit orders initiated.
+Tue Jun 03 12:11:03 2014 build_orders initiated.
+Tue Jun 03 12:11:03 2014 Balls initiated.
+Tue Jun 03 12:11:03 2014 smokes initiated.
+Tue Jun 03 12:11:03 2014 bloods initiated.
+Tue Jun 03 12:11:03 2014 floating_texts initiated.
+Tue Jun 03 12:11:03 2014 lights initiated.
+Tue Jun 03 12:11:03 2014 sounds initiated.
+Tue Jun 03 12:11:03 2014 Units initiated.
+Tue Jun 03 12:11:03 2014 Players initiated.
+Tue Jun 03 12:11:03 2014 Clients initiated.
+Tue Jun 03 12:11:04 2014 env_map initiated.
+Tue Jun 03 12:11:09 2014 GI_ConnectToMasterServer: Connection to master server succeed.
+Tue Jun 03 12:11:09 2014 Joining game: fr
+Tue Jun 03 12:11:09 2014 Game ready.
+Tue Jun 03 12:11:10 2014 moba_players initiated.
+Tue Jun 03 12:11:10 2014 mobss initiated.
+Tue Jun 03 12:11:10 2014 castles initiated.
+Tue Jun 03 12:11:10 2014 graveyards initiated.
+Tue Jun 03 12:11:10 2014 librarys initiated.
+Tue Jun 03 12:11:10 2014 cl player id: 3
+Tue Jun 03 12:11:10 2014 cl player id: 2
+Tue Jun 03 12:11:10 2014 The game is initiated.
+Tue Jun 03 12:11:10 2014 1
+Tue Jun 03 12:11:10 2014 CL: port received.
+Tue Jun 03 12:11:10 2014 Port is 39987
+Tue Jun 03 12:11:10 2014 RS: Connection to master server succeed.
+Tue Jun 03 12:11:10 2014 rs player id: 1
+Tue Jun 03 12:11:10 2014 RS: Connection to master server succeed.
+Tue Jun 03 12:11:10 2014 rs player id: 0
+Tue Jun 03 12:11:10 2014 2
+Tue Jun 03 12:11:10 2014 CL: port received.
+Tue Jun 03 12:11:10 2014 Port is 39985
+Tue Jun 03 12:11:10 2014 CL: Connection to master server succeed.
+Tue Jun 03 12:11:10 2014 CL: Connection to master server succeed.
+Tue Jun 03 12:11:10 2014 Players connected.
+Tue Jun 03 12:11:10 2014 _PLAYERS_CONNECTED_
+Tue Jun 03 12:11:10 2014 The game has started.
+Tue Jun 03 12:12:38 2014 moba_players freed.
+Tue Jun 03 12:12:38 2014 mobss freed.
+Tue Jun 03 12:12:38 2014 castles freed.
+Tue Jun 03 12:12:38 2014 graveyards freed.
+Tue Jun 03 12:12:38 2014 librarys freed.
+Tue Jun 03 12:12:39 2014 asciiwar cl: disconnection.
+Tue Jun 03 12:12:39 2014 asciiwar cl: disconnection.
+Tue Jun 03 12:12:39 2014 Clients freed.
+Tue Jun 03 12:12:39 2014 Players freed.
+Tue Jun 03 12:12:39 2014 Units freed.
+Tue Jun 03 12:12:39 2014 sounds freed.
+Tue Jun 03 12:12:39 2014 lights freed.
+Tue Jun 03 12:12:39 2014 Balls freed.
+Tue Jun 03 12:12:39 2014 smokes freed.
+Tue Jun 03 12:12:39 2014 bloods freed.
+Tue Jun 03 12:12:39 2014 floating_texts freed.
+Tue Jun 03 12:12:39 2014 asciiwar rs: disconnection.
+Tue Jun 03 12:12:39 2014 asciiwar rs: disconnection.
+Tue Jun 03 12:12:39 2014 Remote cmd stores freed.
+Tue Jun 03 12:12:39 2014 Cmd stores freed.
+Tue Jun 03 12:12:39 2014 Cmds freed.
+Tue Jun 03 12:12:39 2014 Game instance freed.
+Tue Jun 03 12:12:39 2014 Deleting game instance...
+Tue Jun 03 12:12:39 2014 Clients freed.
+Tue Jun 03 12:12:39 2014 Players freed.
+Tue Jun 03 12:12:39 2014 Units freed.
+Tue Jun 03 12:12:39 2014 sounds freed.
+Tue Jun 03 12:12:39 2014 lights freed.
+Tue Jun 03 12:12:39 2014 Balls freed.
+Tue Jun 03 12:12:39 2014 smokes freed.
+Tue Jun 03 12:12:39 2014 bloods freed.
+Tue Jun 03 12:12:39 2014 floating_texts freed.
+Tue Jun 03 12:12:39 2014 Remote cmd stores freed.
+Tue Jun 03 12:12:39 2014 Cmd stores freed.
+Tue Jun 03 12:12:39 2014 Cmds freed.
+Tue Jun 03 12:12:39 2014 Game instance freed.
+Tue Jun 03 12:12:39 2014 Execution time: 1.62363 minutes.
+End of execution. 
+

@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>include/bresenham.h</itemPath>
+      <itemPath>src/bresenham_c.c</itemPath>
+      <itemPath>include/bsp.h</itemPath>
+      <itemPath>src/bsp_c.c</itemPath>
+      <itemPath>include/color.h</itemPath>
+      <itemPath>src/color_c.c</itemPath>
+      <itemPath>include/console.h</itemPath>
+      <itemPath>src/console_c.c</itemPath>
+      <itemPath>include/console_types.h</itemPath>
+      <itemPath>include/fov.h</itemPath>
+      <itemPath>src/fov_c.c</itemPath>
+      <itemPath>src/fov_circular_raycasting.c</itemPath>
+      <itemPath>src/fov_diamond_raycasting.c</itemPath>
+      <itemPath>src/fov_permissive2.c</itemPath>
+      <itemPath>src/fov_recursive_shadowcasting.c</itemPath>
+      <itemPath>src/fov_restrictive.c</itemPath>
+      <itemPath>include/fov_types.h</itemPath>
+      <itemPath>include/heightmap.h</itemPath>
+      <itemPath>src/heightmap_c.c</itemPath>
+      <itemPath>include/image.h</itemPath>
+      <itemPath>src/image_c.c</itemPath>
+      <itemPath>include/lex.h</itemPath>
+      <itemPath>src/lex_c.c</itemPath>
+      <itemPath>include/libtcod.h</itemPath>
+      <itemPath>include/libtcod_int.h</itemPath>
+      <itemPath>include/list.h</itemPath>
+      <itemPath>src/list_c.c</itemPath>
+      <itemPath>src/png/lodepng.c</itemPath>
+      <itemPath>src/png/lodepng.h</itemPath>
+      <itemPath>include/mersenne.h</itemPath>
+      <itemPath>src/mersenne_c.c</itemPath>
+      <itemPath>include/mersenne_types.h</itemPath>
+      <itemPath>include/mouse.h</itemPath>
+      <itemPath>include/mouse_types.h</itemPath>
+      <itemPath>include/namegen.h</itemPath>
+      <itemPath>src/namegen_c.c</itemPath>
+      <itemPath>include/noise.h</itemPath>
+      <itemPath>src/noise_c.c</itemPath>
+      <itemPath>include/noise_defaults.h</itemPath>
+      <itemPath>include/parser.h</itemPath>
+      <itemPath>src/parser_c.c</itemPath>
+      <itemPath>include/path.h</itemPath>
+      <itemPath>src/path_c.c</itemPath>
+      <itemPath>include/sys.h</itemPath>
+      <itemPath>src/sys_c.c</itemPath>
+      <itemPath>src/sys_opengl_c.c</itemPath>
+      <itemPath>src/sys_sdl_c.c</itemPath>
+      <itemPath>src/sys_sdl_img_bmp.c</itemPath>
+      <itemPath>src/sys_sdl_img_png.c</itemPath>
+      <itemPath>include/tree.h</itemPath>
+      <itemPath>src/tree_c.c</itemPath>
+      <itemPath>include/txtfield.h</itemPath>
+      <itemPath>src/txtfield_c.c</itemPath>
+      <itemPath>src/wrappers.c</itemPath>
+      <itemPath>include/wrappers.h</itemPath>
+      <itemPath>include/zip.h</itemPath>
+      <itemPath>src/zip_c.c</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="2">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <incDir>
+            <pElem>include</pElem>
+            <pElem>../zlib-1.2.8</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>LIBTCOD_EXPORTS</Elem>
+            <Elem>NO_OPENGL</Elem>
+          </preprocessorList>
+        </cTool>
+        <ccTool>
+          <incDir>
+            <pElem>include</pElem>
+            <pElem>../zlib-1.2.8</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>LIBTCOD_EXPORTS</Elem>
+            <Elem>NO_OPENGL</Elem>
+          </preprocessorList>
+        </ccTool>
+        <linkerTool>
+          <linkerAddLib>
+            <pElem>../SDL-1.2.15/lib</pElem>
+            <pElem>../zlib-1.2.8/dist/Release/MinGW-Windows</pElem>
+          </linkerAddLib>
+          <commandLine>-lmingw32 -mwindows -lws2_32 -lwinmm -lzlib-1.2.8 -lSDLmain -lSDL -static-libgcc -static-libstdc++ -mthreads -Wl,--out-implib,liblibtcod.a</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="include/bresenham.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/bsp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/color.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/console.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/console_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/fov.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/fov_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/heightmap.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/image.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/lex.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/libtcod.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/libtcod_int.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/list.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mersenne.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mersenne_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mouse.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mouse_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/namegen.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/noise.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/noise_defaults.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/parser.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/path.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/sys.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/tree.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/txtfield.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/wrappers.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/zip.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/bresenham_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/bsp_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/color_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/console_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_circular_raycasting.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_diamond_raycasting.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_permissive2.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_recursive_shadowcasting.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_restrictive.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/heightmap_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/image_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/lex_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/list_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/mersenne_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/namegen_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/noise_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/parser_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/path_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/png/lodepng.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/png/lodepng.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/sys_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_opengl_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_sdl_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_sdl_img_bmp.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_sdl_img_png.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/tree_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/txtfield_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/wrappers.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/zip_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="2">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>include</pElem>
+            <pElem>../zlib-1.2.8</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>LIBTCOD_EXPORTS</Elem>
+            <Elem>NO_OPENGL</Elem>
+          </preprocessorList>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>include</pElem>
+            <pElem>../zlib-1.2.8</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>LIBTCOD_EXPORTS</Elem>
+            <Elem>NO_OPENGL</Elem>
+          </preprocessorList>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <linkerTool>
+          <linkerAddLib>
+            <pElem>../SDL-1.2.15/lib</pElem>
+            <pElem>../zlib-1.2.8/dist/Release/MinGW-Windows</pElem>
+          </linkerAddLib>
+          <commandLine>-lmingw32 -mwindows -lws2_32 -lwinmm -lzlib-1.2.8 -lSDLmain -lSDL -static-libgcc -static-libstdc++ -mthreads -Wl,--out-implib,liblibtcod.a</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="include/bresenham.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/bsp.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/color.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/console.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/console_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/fov.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/fov_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/heightmap.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/image.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/lex.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/libtcod.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/libtcod_int.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/list.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mersenne.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mersenne_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mouse.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/mouse_types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/namegen.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/noise.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/noise_defaults.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/parser.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/path.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/sys.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/tree.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/txtfield.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/wrappers.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="include/zip.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/bresenham_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/bsp_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/color_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/console_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_circular_raycasting.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_diamond_raycasting.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_permissive2.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_recursive_shadowcasting.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/fov_restrictive.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/heightmap_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/image_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/lex_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/list_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/mersenne_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/namegen_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/noise_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/parser_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/path_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/png/lodepng.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/png/lodepng.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/sys_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_opengl_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_sdl_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_sdl_img_bmp.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/sys_sdl_img_png.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/tree_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/txtfield_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/wrappers.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/zip_c.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

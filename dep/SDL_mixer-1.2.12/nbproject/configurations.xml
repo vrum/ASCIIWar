@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>SDL_mixer.h</itemPath>
+      <itemPath>dynamic_flac.c</itemPath>
+      <itemPath>dynamic_flac.h</itemPath>
+      <itemPath>dynamic_fluidsynth.c</itemPath>
+      <itemPath>dynamic_fluidsynth.h</itemPath>
+      <itemPath>dynamic_mod.c</itemPath>
+      <itemPath>dynamic_mod.h</itemPath>
+      <itemPath>dynamic_mp3.c</itemPath>
+      <itemPath>dynamic_mp3.h</itemPath>
+      <itemPath>dynamic_ogg.c</itemPath>
+      <itemPath>dynamic_ogg.h</itemPath>
+      <itemPath>effect_position.c</itemPath>
+      <itemPath>effect_stereoreverse.c</itemPath>
+      <itemPath>effects_internal.c</itemPath>
+      <itemPath>effects_internal.h</itemPath>
+      <itemPath>fluidsynth.c</itemPath>
+      <itemPath>fluidsynth.h</itemPath>
+      <itemPath>load_aiff.c</itemPath>
+      <itemPath>load_aiff.h</itemPath>
+      <itemPath>load_flac.c</itemPath>
+      <itemPath>load_flac.h</itemPath>
+      <itemPath>load_ogg.c</itemPath>
+      <itemPath>load_ogg.h</itemPath>
+      <itemPath>load_voc.c</itemPath>
+      <itemPath>load_voc.h</itemPath>
+      <itemPath>mixer.c</itemPath>
+      <itemPath>music.c</itemPath>
+      <itemPath>music_cmd.c</itemPath>
+      <itemPath>music_cmd.h</itemPath>
+      <itemPath>music_flac.c</itemPath>
+      <itemPath>music_flac.h</itemPath>
+      <itemPath>music_mad.c</itemPath>
+      <itemPath>music_mad.h</itemPath>
+      <itemPath>music_mod.c</itemPath>
+      <itemPath>music_mod.h</itemPath>
+      <itemPath>music_modplug.c</itemPath>
+      <itemPath>music_modplug.h</itemPath>
+      <itemPath>music_ogg.c</itemPath>
+      <itemPath>music_ogg.h</itemPath>
+      <itemPath>native_midi/native_midi.h</itemPath>
+      <itemPath>native_midi/native_midi_common.c</itemPath>
+      <itemPath>native_midi/native_midi_common.h</itemPath>
+      <itemPath>native_midi/native_midi_haiku.cpp</itemPath>
+      <itemPath>native_midi/native_midi_mac.c</itemPath>
+      <itemPath>native_midi/native_midi_macosx.c</itemPath>
+      <itemPath>native_midi/native_midi_win32.c</itemPath>
+      <itemPath>wavestream.c</itemPath>
+      <itemPath>wavestream.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="2">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <incDir>
+            <pElem>VisualC/external/include</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+            <pElem>.</pElem>
+            <pElem>native_midi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>MP3_DYNAMIC="smpeg.dll"</Elem>
+            <Elem>MP3_MUSIC</Elem>
+            <Elem>OGG_DYNAMIC="libvorbisfile-3.dll"</Elem>
+            <Elem>OGG_MUSIC</Elem>
+            <Elem>WAV_MUSIC</Elem>
+          </preprocessorList>
+        </cTool>
+        <ccTool>
+          <incDir>
+            <pElem>VisualC/external/include</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+            <pElem>.</pElem>
+            <pElem>native_midi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>MP3_DYNAMIC="smpeg.dll"</Elem>
+            <Elem>MP3_MUSIC</Elem>
+            <Elem>OGG_DYNAMIC="libvorbisfile-3.dll"</Elem>
+            <Elem>OGG_MUSIC</Elem>
+            <Elem>WAV_MUSIC</Elem>
+          </preprocessorList>
+        </ccTool>
+        <linkerTool>
+          <linkerAddLib>
+            <pElem>../SDL-1.2.15/lib</pElem>
+          </linkerAddLib>
+          <commandLine>-lmingw32 -mwindows -lws2_32 -lwinmm -lSDLmain -lSDL -static-libgcc -static-libstdc++ -mthreads -Wl,--out-implib,libsdlmixer.a</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="SDL_mixer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_flac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_flac.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_fluidsynth.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_fluidsynth.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_mod.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_mod.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_mp3.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_mp3.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_ogg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_ogg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="effect_position.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="effect_stereoreverse.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="effects_internal.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="effects_internal.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="fluidsynth.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="fluidsynth.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_aiff.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_aiff.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_flac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_flac.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_ogg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_ogg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_voc.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_voc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="mixer.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_cmd.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_cmd.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_flac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_flac.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_mad.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_mad.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_mod.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_mod.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_modplug.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_modplug.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_ogg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_ogg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_common.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_common.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_haiku.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_mac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_macosx.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_win32.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="wavestream.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="wavestream.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="2">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>VisualC/external/include</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+            <pElem>.</pElem>
+            <pElem>native_midi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>MP3_DYNAMIC="smpeg.dll"</Elem>
+            <Elem>MP3_MUSIC</Elem>
+            <Elem>OGG_DYNAMIC="libvorbisfile-3.dll"</Elem>
+            <Elem>OGG_MUSIC</Elem>
+            <Elem>WAV_MUSIC</Elem>
+          </preprocessorList>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>VisualC/external/include</pElem>
+            <pElem>../SDL-1.2.15/include</pElem>
+            <pElem>.</pElem>
+            <pElem>native_midi</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>MP3_DYNAMIC="smpeg.dll"</Elem>
+            <Elem>MP3_MUSIC</Elem>
+            <Elem>OGG_DYNAMIC="libvorbisfile-3.dll"</Elem>
+            <Elem>OGG_MUSIC</Elem>
+            <Elem>WAV_MUSIC</Elem>
+          </preprocessorList>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <linkerTool>
+          <linkerAddLib>
+            <pElem>../SDL-1.2.15/lib</pElem>
+          </linkerAddLib>
+          <commandLine>-lmingw32 -mwindows -lws2_32 -lwinmm -lSDLmain -lSDL -static-libgcc -static-libstdc++ -mthreads -Wl,--out-implib,libsdlmixer.a</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="SDL_mixer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_flac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_flac.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_fluidsynth.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_fluidsynth.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_mod.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_mod.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_mp3.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_mp3.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="dynamic_ogg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="dynamic_ogg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="effect_position.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="effect_stereoreverse.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="effects_internal.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="effects_internal.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="fluidsynth.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="fluidsynth.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_aiff.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_aiff.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_flac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_flac.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_ogg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_ogg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="load_voc.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="load_voc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="mixer.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_cmd.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_cmd.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_flac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_flac.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_mad.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_mad.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_mod.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_mod.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_modplug.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_modplug.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="music_ogg.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="music_ogg.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_common.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_common.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_haiku.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_mac.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_macosx.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="native_midi/native_midi_win32.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="wavestream.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="wavestream.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

@@ -1,0 +1,4 @@
+24 bits font.
+key color : 0 0 0
+Using SDL renderer...
+fullscreen offset : 3 0

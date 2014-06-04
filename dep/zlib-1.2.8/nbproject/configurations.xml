@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>adler32.c</itemPath>
+      <itemPath>compress.c</itemPath>
+      <itemPath>crc32.c</itemPath>
+      <itemPath>crc32.h</itemPath>
+      <itemPath>deflate.c</itemPath>
+      <itemPath>deflate.h</itemPath>
+      <itemPath>gzclose.c</itemPath>
+      <itemPath>gzguts.h</itemPath>
+      <itemPath>gzlib.c</itemPath>
+      <itemPath>gzread.c</itemPath>
+      <itemPath>gzwrite.c</itemPath>
+      <itemPath>infback.c</itemPath>
+      <itemPath>inffast.c</itemPath>
+      <itemPath>inffast.h</itemPath>
+      <itemPath>inffixed.h</itemPath>
+      <itemPath>inflate.c</itemPath>
+      <itemPath>inflate.h</itemPath>
+      <itemPath>inftrees.c</itemPath>
+      <itemPath>inftrees.h</itemPath>
+      <itemPath>trees.c</itemPath>
+      <itemPath>trees.h</itemPath>
+      <itemPath>uncompr.c</itemPath>
+      <itemPath>zconf.h</itemPath>
+      <itemPath>zlib.h</itemPath>
+      <itemPath>zutil.c</itemPath>
+      <itemPath>zutil.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>zlib-1.2.8-Makefile.mk</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>zlib-1.2.8-Makefile.mk</projectmakefile>
+  <confs>
+    <conf name="Debug" type="3">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <incDir>
+            <pElem>.</pElem>
+          </incDir>
+        </cTool>
+        <archiverTool>
+        </archiverTool>
+      </compileType>
+      <item path="adler32.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="compress.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="crc32.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="crc32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="deflate.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="deflate.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gzclose.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gzguts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gzlib.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gzread.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gzwrite.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="infback.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inffast.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inffast.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="inffixed.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="inflate.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inflate.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="inftrees.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inftrees.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="trees.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="trees.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="uncompr.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="zconf.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="zlib.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="zutil.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="zutil.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="3">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>.</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <archiverTool>
+        </archiverTool>
+      </compileType>
+      <item path="adler32.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="compress.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="crc32.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="crc32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="deflate.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="deflate.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gzclose.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gzguts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="gzlib.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gzread.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="gzwrite.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="infback.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inffast.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inffast.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="inffixed.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="inflate.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inflate.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="inftrees.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="inftrees.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="trees.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="trees.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="uncompr.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="zconf.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="zlib.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="zutil.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="zutil.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

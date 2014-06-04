@@ -1,0 +1,9 @@
+/build
+/screenshot
+/replay
+*.o
+*.bat
+*.jks
+*.p12
+*.crt
+*.key

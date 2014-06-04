@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>src/asciiwar.cpp</itemPath>
+      <itemPath>src/asciiwar.h</itemPath>
+      <itemPath>src/main.cpp</itemPath>
+      <itemPath>src/moba.cpp</itemPath>
+      <itemPath>src/moba.h</itemPath>
+      <itemPath>src/parsers.cpp</itemPath>
+      <itemPath>src/parsers.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceRootList>
+    <Elem>src</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <incDir>
+            <pElem>dep/libtcod-1.5.2/include/gui</pElem>
+            <pElem>dep/libtcod-1.5.2/include</pElem>
+            <pElem>dep/jansson-2.6/src</pElem>
+            <pElem>dep/enet-1.3.11/include</pElem>
+            <pElem>dep/zlib-1.2.8</pElem>
+            <pElem>dep/SDL-1.2.15/include</pElem>
+            <pElem>dep/SDL_mixer-1.2.12</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>DEBUG</Elem>
+            <Elem>LOAD_PNG</Elem>
+          </preprocessorList>
+          <warningLevel>0</warningLevel>
+        </cTool>
+        <ccTool>
+          <developmentMode>0</developmentMode>
+          <commandlineTool>g++</commandlineTool>
+          <incDir>
+            <pElem>dep/libtcod-1.5.2/include/gui</pElem>
+            <pElem>dep/libtcod-1.5.2/include</pElem>
+            <pElem>dep/jansson-2.6/src</pElem>
+            <pElem>dep/enet-1.3.11/include</pElem>
+            <pElem>dep/zlib-1.2.8</pElem>
+            <pElem>dep/SDL-1.2.15/include</pElem>
+            <pElem>dep/SDL_mixer-1.2.12</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>DEBUG</Elem>
+            <Elem>LOAD_PNG</Elem>
+          </preprocessorList>
+          <warningLevel>3</warningLevel>
+        </ccTool>
+        <linkerTool>
+          <output>bin/ASCIIWar</output>
+          <linkerAddLib>
+            <pElem>dep/SDL-1.2.15/lib</pElem>
+            <pElem>dep/libtcod-1.5.2/lib</pElem>
+            <pElem>dep/jansson-2.6/dist/Release/MinGW-Windows</pElem>
+            <pElem>dep/enet-1.3.11/dist/Release/MinGW-Windows</pElem>
+            <pElem>dep/zlib-1.2.8/dist/Release/MinGW-Windows</pElem>
+            <pElem>dep/SDL_mixer-1.2.12/lib</pElem>
+          </linkerAddLib>
+          <commandLine>-lmingw32 -mwindows -llibtcod -lenet-1.3.11 -lSDLmain -lSDL -lsdlmixer -lws2_32 -lwinmm -ljansson-2.6 -lzlib-1.2.8 -static-libgcc -static-libstdc++ -mthreads</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="src/asciiwar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/asciiwar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/main.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/moba.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/moba.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/parsers.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/parsers.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <incDir>
+            <pElem>dep/libtcod-1.5.2/include/gui</pElem>
+            <pElem>dep/libtcod-1.5.2/include</pElem>
+            <pElem>dep/jansson-2.6/src</pElem>
+            <pElem>dep/enet-1.3.11/include</pElem>
+            <pElem>dep/zlib-1.2.8</pElem>
+            <pElem>dep/SDL-1.2.15/include</pElem>
+            <pElem>dep/SDL_mixer-1.2.12</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>LOAD_PNG</Elem>
+          </preprocessorList>
+          <warningLevel>0</warningLevel>
+        </cTool>
+        <ccTool>
+          <developmentMode>0</developmentMode>
+          <incDir>
+            <pElem>dep/libtcod-1.5.2/include/gui</pElem>
+            <pElem>dep/libtcod-1.5.2/include</pElem>
+            <pElem>dep/jansson-2.6/src</pElem>
+            <pElem>dep/enet-1.3.11/include</pElem>
+            <pElem>dep/zlib-1.2.8</pElem>
+            <pElem>dep/SDL-1.2.15/include</pElem>
+            <pElem>dep/SDL_mixer-1.2.12</pElem>
+          </incDir>
+          <commandLine>-ffloat-store -march=i686 -msse -mfpmath=sse</commandLine>
+          <preprocessorList>
+            <Elem>LOAD_PNG</Elem>
+          </preprocessorList>
+          <warningLevel>3</warningLevel>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <linkerTool>
+          <output>bin/ASCIIWar</output>
+          <linkerAddLib>
+            <pElem>dep/SDL-1.2.15/lib</pElem>
+            <pElem>dep/libtcod-1.5.2/lib</pElem>
+            <pElem>dep/jansson-2.6/dist/Release/MinGW-Windows</pElem>
+            <pElem>dep/enet-1.3.11/dist/Release/MinGW-Windows</pElem>
+            <pElem>dep/zlib-1.2.8/dist/Release/MinGW-Windows</pElem>
+            <pElem>dep/SDL_mixer-1.2.12/lib</pElem>
+          </linkerAddLib>
+          <commandLine>-lmingw32 -mwindows -llibtcod -lenet-1.3.11 -lSDLmain -lSDL -lsdlmixer -lws2_32 -lwinmm -ljansson-2.6 -lzlib-1.2.8 -static-libgcc -static-libstdc++ -mthreads</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="src/asciiwar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/asciiwar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/main.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/moba.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/moba.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/parsers.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/parsers.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

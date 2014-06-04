@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>src/dump.c</itemPath>
+      <itemPath>src/error.c</itemPath>
+      <itemPath>src/hashtable.c</itemPath>
+      <itemPath>src/hashtable.h</itemPath>
+      <itemPath>src/hashtable_seed.c</itemPath>
+      <itemPath>src/jansson.h</itemPath>
+      <itemPath>src/jansson_config.h</itemPath>
+      <itemPath>src/jansson_private.h</itemPath>
+      <itemPath>src/load.c</itemPath>
+      <itemPath>src/lookup3.h</itemPath>
+      <itemPath>src/memory.c</itemPath>
+      <itemPath>src/pack_unpack.c</itemPath>
+      <itemPath>src/strbuffer.c</itemPath>
+      <itemPath>src/strbuffer.h</itemPath>
+      <itemPath>src/strconv.c</itemPath>
+      <itemPath>src/utf.c</itemPath>
+      <itemPath>src/utf.h</itemPath>
+      <itemPath>src/value.c</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="3">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>0</developmentMode>
+          <architecture>1</architecture>
+          <standard>3</standard>
+          <incDir>
+            <pElem>src</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HAVE_FCNTL_H</Elem>
+            <Elem>HAVE_SCHED_H</Elem>
+            <Elem>HAVE_STDINT_H</Elem>
+            <Elem>HAVE_SYS_STAT_H</Elem>
+            <Elem>HAVE_SYS_TIME_H</Elem>
+            <Elem>HAVE_SYS_TYPES_H</Elem>
+            <Elem>HAVE_UNISTD_H</Elem>
+          </preprocessorList>
+        </cTool>
+        <ccTool>
+          <incDir>
+            <pElem>src</pElem>
+          </incDir>
+        </ccTool>
+        <archiverTool>
+        </archiverTool>
+      </compileType>
+      <item path="src/dump.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/error.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/hashtable.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/hashtable.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/hashtable_seed.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/jansson.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/jansson_config.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/jansson_private.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/load.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/lookup3.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/memory.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/pack_unpack.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/strbuffer.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/strbuffer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/strconv.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/utf.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/utf.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/value.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="3">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>0</developmentMode>
+          <standard>3</standard>
+          <incDir>
+            <pElem>src</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HAVE_FCNTL_H</Elem>
+            <Elem>HAVE_SCHED_H</Elem>
+            <Elem>HAVE_STDINT_H</Elem>
+            <Elem>HAVE_SYS_STAT_H</Elem>
+            <Elem>HAVE_SYS_TIME_H</Elem>
+            <Elem>HAVE_SYS_TYPES_H</Elem>
+            <Elem>HAVE_UNISTD_H</Elem>
+          </preprocessorList>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <incDir>
+            <pElem>src</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <archiverTool>
+        </archiverTool>
+      </compileType>
+      <item path="src/dump.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/error.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/hashtable.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/hashtable.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/hashtable_seed.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/jansson.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/jansson_config.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/jansson_private.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/load.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/lookup3.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/memory.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/pack_unpack.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/strbuffer.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/strbuffer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/strconv.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/utf.c" ex="false" tool="0" flavor2="0">
+      </item>
+      <item path="src/utf.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/value.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
