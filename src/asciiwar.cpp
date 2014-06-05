@@ -4086,7 +4086,9 @@ void PL_UpdateUnits(AW_game_instance_t *gi, AW_player_ptr p) {
           } else 
             done = PL_UpdateFollowTarget(gi, p, u);
         } break;
-      case AW_unit_order_move: {
+      case AW_unit_order_move:
+#if THREADS        
+        {
           /* while 'un' is moving, it can happen things... */
           AW_unit_order_t *uo = UO_GetFront(gi, u);
           /* towers and co don't move */
@@ -4219,7 +4221,9 @@ void PL_UpdateUnits(AW_game_instance_t *gi, AW_player_ptr p) {
               }
             }
           }
-        } break;
+        } 
+#endif        
+        break;
       case AW_unit_order_attack: {
           un->move = 0;
           AW_unit_order_t *uo = UO_GetFront(gi, u);
@@ -5139,6 +5143,7 @@ bool PL_UnitAttack(AW_game_instance_t *gi, AW_player_ptr p, AW_unit_ptr u) {
 void PL_InitFreeWorker(AW_game_instance_t *gi, AW_player_ptr p) {
   AW_player_t *pl = &player(p);
   pl->free_worker = AW_null;
+#if THREADS  
   DO_TIMES(MAX_WORKER)
     if(gi->workers[p][f].free) {
       pl->free_worker = f;
@@ -5151,9 +5156,11 @@ void PL_InitFreeWorker(AW_game_instance_t *gi, AW_player_ptr p) {
       wo->free        = false;
       break;
     }
+#endif    
 }
 
 void PL_StartWorker(AW_game_instance_t *gi, AW_player_ptr p) {
+#if THREADS  
   AW_player_t *pl   = &player(p);
   AW_worker_ptr w   = pl->free_worker;
   AW_worker_t *wo   = &worker(w);
@@ -5169,9 +5176,11 @@ void PL_StartWorker(AW_game_instance_t *gi, AW_player_ptr p) {
     //END_BENCH
   } else
     wo->free = true;
+#endif    
 }
 
 void PL_CloseWorker(AW_game_instance_t *gi, AW_player_ptr p, AW_worker_ptr w) {
+#if THREADS
   AW_player_t *pl = &player(p);
   AW_worker_t *wo = &worker(w);
   DWORD r = WaitForSingleObject(wo->handle, 10000);
@@ -5205,9 +5214,11 @@ void PL_CloseWorker(AW_game_instance_t *gi, AW_player_ptr p, AW_worker_ptr w) {
     }
   }
   wo->free = true;
+#endif  
 }
 
 DWORD WINAPI PL_WorkerFun(void *params) {
+#if THREADS  
   AW_worker_t *wo               = (AW_worker_t*)params;
   AW_worker_ptr w               = wo->w;
   AW_game_instance_t *gi        = wo->gi;
@@ -5300,6 +5311,7 @@ DWORD WINAPI PL_WorkerFun(void *params) {
     ta->chase_cx = dx;
     ta->chase_cy = dy;
   } while(i < wo->task_count);
+#endif  
 }
 
 /*
@@ -6727,7 +6739,9 @@ str get_date() {
 }
 
 void log(const char *msg) {
+#if THREADS  
   EnterCriticalSection(&log_crit);
+#endif  
     FILE *f = fopen((bin_dir + "log.txt").c_str(), "a+");
     fseek(f, 0, SEEK_END);
     int size = ftell(f);
@@ -6739,7 +6753,9 @@ void log(const char *msg) {
         f = fopen("log.txt", "w+");
     fprintf(f, msg);
     fclose(f);
+#if THREADS    
   LeaveCriticalSection(&log_crit);
+#endif
 }
 
 void trace(const str &s) {
@@ -6756,7 +6772,9 @@ void trace(float f) {
 
 void exit() {
   log("End of execution. \n\n");  
+#if THREADS  
   DeleteCriticalSection(&log_crit);
+#endif  
 }
 
 /*

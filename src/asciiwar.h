@@ -49,6 +49,8 @@
 
 #ifdef WIN32
 #include <Windows.h>
+#elif defined(__linux)
+#include "linux.h"
 #endif
 
 using namespace std;
@@ -79,7 +81,8 @@ typedef string str;
 #define RELEASE 										false
 #define REPLAY 											false
 #define RECORD 											false
-#define FULLSCREEN    							true
+#define FULLSCREEN    							false
+#define THREADS									false
 
 #define NORMAL_TIME_STEP 						10
 #define SAME_UNIT_TYPE_SIZE 				30
@@ -1348,9 +1351,9 @@ extern int 													CON_RES_X,
 																		CON_RES_Y,
 																		MINIMAP_START_X,
 																		LAGOMETER_START_X;
-
+#if THREADS
 extern CRITICAL_SECTION      				log_crit;
-					
+#endif					
 extern short 												halfes[MAX_UNIT_SIZE];
 
 /*

@@ -13,7 +13,9 @@ int main(int _argc, char **_argv) {
 	run = true;
   argc = _argc;
   argv = _argv;
+#if THREADS  
   InitializeCriticalSectionAndSpinCount(&log_crit, 4000);
+#endif  
   AW_SetBinDir();
   fclose(fopen((bin_dir + "log.txt").c_str(), "w+"));
   log((str("Binary directory: ") + bin_dir + "\n").c_str());
