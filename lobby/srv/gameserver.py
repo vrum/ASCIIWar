@@ -1,3 +1,4 @@
+# coding: iso-8859-15
 """
 * ASCIIWar
 * Copyright (c) 2014 Frederic Brachfogel
