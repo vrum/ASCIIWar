@@ -1467,7 +1467,7 @@ void CL_WaitForConnection(AW_game_instance_t *gi, AW_client_ptr c) {
           trace("CL: cannot connect to master server.");
           GI_FailureFlash(gi, "Cannot connect to master server.");
           GI_RemoveState(gi, AW_state_ready);
-          GI_AddState(gi, AW_state_start);
+          GI_AddState(gi, AW_state_main_menu);
           break;
         case ENET_EVENT_TYPE_RECEIVE:
           trace("CL: a packet has been received.");
@@ -3163,7 +3163,7 @@ void CL_UpdateOptionWindow(AW_game_instance_t *gi, AW_client_ptr c) {
       GI_DisconnectFromMasterServer(gi);
       GI_Free(gi);
       gi->state = 0;
-      GI_AddState(gi, AW_state_start);
+      AW_Quit();
       gi->flash_btn.s = "";
     }
   }
@@ -5410,6 +5410,7 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   gi->fog_mask = TCOD_image_load("./data/fog_mask.png");
   gi->on_death_cb = null;
   #include "ui.cpp"
+  trace("game instance initiated");
 }
 
 void GI_InitGame(AW_game_instance_t *gi, game_desc_t *gd, AW_init_game_cb_t init_game_cb) {
@@ -6172,17 +6173,17 @@ bool GI_CheckConnectionToMasterServer(AW_game_instance_t *gi, ENetEvent *e, AW_s
       return true;
     case ENET_EVENT_TYPE_CONNECT:
       gi->connected = true;
-      trace("GI_ConnectToMasterServer: Connection to master server succeed.");
+      trace("GI_CheckConnectionToMasterServer: Connection to master server succeed.");
       GI_SuccessFlash(gi, "Connection to master server succeed.");
       return true;
     case ENET_EVENT_TYPE_DISCONNECT:
       gi->connected = false;
       gi->connection_acc = 0;
-      trace("GI_ConnectToMasterServer: disconnected from master server.");
+      trace("GI_CheckConnectionToMasterServer: disconnected from master server.");
       GI_Free(gi);
       GI_FailureFlash(gi, "Disconnected from master server.");
       GI_RemoveState(gi, current_state);
-      GI_AddState(gi, AW_state_start);
+      GI_AddState(gi, AW_state_main_menu);
       return false;
     default:
       if(!gi->connected) {
@@ -6191,7 +6192,7 @@ bool GI_CheckConnectionToMasterServer(AW_game_instance_t *gi, ENetEvent *e, AW_s
           trace("GI_ConnectToMasterServer: cannot connect to master server.");
           GI_FailureFlash(gi, "Cannot connect to master server.");
           GI_RemoveState(gi, current_state);
-          GI_AddState(gi, AW_state_start);
+          GI_AddState(gi, AW_state_main_menu);
           return false;
         }
       } 
@@ -6199,105 +6200,22 @@ bool GI_CheckConnectionToMasterServer(AW_game_instance_t *gi, ENetEvent *e, AW_s
   return true;
 }
 
-bool GI_CreateGameOnMasterServer(AW_game_instance_t *gi, const str &game_name) {
-  bool not_done = true;
-  while(!gi->connected && not_done) {
-    LISTEN_MASTER_SERVER
-    not_done = GI_CheckConnectionToMasterServer(gi, &e, AW_state_create);
-  }
-  if(gi->connected) {
-    trace("Creating game: " + game_name);
-    GI_SuccessFlash(gi, "Game created successfully.");
-    ENetPacket *packet =
-      enet_packet_create(null, 0, ENET_PACKET_FLAG_RELIABLE);
-    AW_create_game_packet_t data;
-    data.type                   = AW_cmd_type_create_game;
-    data.player_count_per_team  = PLAYER_COUNT_PER_TEAM;
-    data.team_count             = TEAM_COUNT;
-    strcpy(data.game_name, game_name.c_str());
-    enet_packet_resize(packet, sizeof(data));
-    memcpy(packet->data, &data, sizeof(data));
-    enet_peer_send(gi->peer, 0, packet);
-    enet_host_flush(gi->host);
-  }
-  return gi->connected;
-}
-
-bool GI_RefreshGameList(AW_game_instance_t *gi) {
-  bool not_done = true;
-  while(!gi->connected && not_done) {
-    TCOD_sys_sleep_milli(50);
-    gi->frame_time = 50;
-    LISTEN_MASTER_SERVER
-    not_done = GI_CheckConnectionToMasterServer(gi, &e, AW_state_start);
-  }
-  if(gi->connected) {
-    gi->join_game_btns.btn_count          = 2;
-    gi->join_game_btns.btns[0].color      = TCOD_white;
-    gi->join_game_btns.btns[0].s          = "Game List:";
-    gi->join_game_btns.btns[0].highlight  = false;
-    gi->join_game_btns.btns[0].entry      = false;
-    gi->join_game_btns.btns[0].shortcut   = -2;
-    gi->join_game_btns.btns[0].shortcut_special = (TCOD_keycode_t)-1;
-    gi->join_game_btns.btns[1].color      = TCOD_white;
-    gi->join_game_btns.btns[1].s          = "";
-    gi->join_game_btns.btns[1].highlight  = false;
-    gi->join_game_btns.btns[1].entry      = false;
-    gi->join_game_btns.btns[1].shortcut   = -2;
-    gi->join_game_btns.btns[1].shortcut_special = (TCOD_keycode_t)-1;
-    ENetPacket *packet =
-      enet_packet_create(null, 0, ENET_PACKET_FLAG_RELIABLE);
-    AW_fill_game_list_packet_t data;
-    data.type = AW_cmd_type_fill_game_list;
-    enet_packet_resize(packet, sizeof(data));
-    memcpy(packet->data, &data, sizeof(data));
-    enet_peer_send(gi->peer, 0, packet);
-    enet_host_flush(gi->host);
-    AW_time_t t = AW_GetTime();
-    bool done = false;
-    while(!done && (AW_GetTime()-t) < SHORT_CONNECTION_TIMEOUT) {
-      ENetEvent e;
-      if(enet_host_service(gi->host, &e, 50) != ENET_EVENT_TYPE_NONE) {
-        switch(e.type) {
-          case ENET_EVENT_TYPE_RECEIVE: {
-              str result = str((const char*)e.packet->data);
-              if(result == "_END_")
-                done = true;
-              else {
-                gi->join_game_btns.btns[gi->join_game_btns.btn_count].color = TCOD_white;
-                gi->join_game_btns.btns[gi->join_game_btns.btn_count].s = result;
-                gi->join_game_btns.btns[gi->join_game_btns.btn_count].highlight = true;
-                gi->join_game_btns.btns[gi->join_game_btns.btn_count].entry = false;
-                gi->join_game_btns.btns[gi->join_game_btns.btn_count].shortcut = -2;
-                gi->join_game_btns.btns[gi->join_game_btns.btn_count].shortcut_special = (TCOD_keycode_t)-1;
-                gi->join_game_btns.btn_count++;
-              }
-              t = AW_GetTime();
-            } break;
-        }
-        GI_CheckConnectionToMasterServer(gi, &e, (AW_state_t)gi->state);
-      }
-    }
-    gi->join_game_btns.pos_x = CON_RES_X/2;
-    BTN_CenterY(gi, &gi->join_game_btns);
-  }
-  return gi->connected;
-}
-
-bool GI_JoinGameOnMasterServer(AW_game_instance_t *gi, const str &game_name) {
+bool GI_JoinGameOnMasterServer(AW_game_instance_t *gi) {
   bool not_done = true;
   while(!gi->connected && not_done) {
     LISTEN_MASTER_SERVER
     not_done = GI_CheckConnectionToMasterServer(gi, &e, AW_state_join);
   }
   if(gi->connected) {
-    GI_SuccessFlash(gi, "Game joined successfully.");
-    trace("Joining game: " + game_name);
+    trace("Joining game: " + game_desc.game_name);
+    GI_SuccessFlash(gi, "Game created successfully.");
     ENetPacket *packet =
       enet_packet_create(null, 0, ENET_PACKET_FLAG_RELIABLE);
     AW_join_game_packet_t data;
-    data.type         = AW_cmd_type_join_game;
-    strcpy(data.game_name, game_name.c_str());
+    data.type                   = AW_cmd_type_join_game;
+    data.player_count_per_team  = game_desc.player_count_per_team;
+    data.team_count             = game_desc.team_count;
+    strcpy(data.game_name, game_desc.game_name.c_str());
     enet_packet_resize(packet, sizeof(data));
     memcpy(packet->data, &data, sizeof(data));
     enet_peer_send(gi->peer, 0, packet);
@@ -6312,12 +6230,6 @@ bool GI_GameReady(AW_game_instance_t *gi) {
     switch(e.type)
       case ENET_EVENT_TYPE_RECEIVE: {
           trace("Game ready.");
-          if(str((const char*)e.packet->data) == "_DOESNT_EXIST_") {
-            GI_RemoveState(gi, AW_state_waiting_players);
-            GI_AddState(gi, AW_state_start);
-            GI_FailureFlash(gi, "Game doesn't exist anymore.");
-            return false;
-          }
           const char *data = (const char*)e.packet->data;
           int player_id = *(int*)data;
           data += sizeof(int);

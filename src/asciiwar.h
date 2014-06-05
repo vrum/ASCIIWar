@@ -676,12 +676,10 @@ enum AW_cmd_type_t {
 	AW_cmd_type_build_unit 			= 3,
 	AW_cmd_type_generic 				= 4,
 	AW_cmd_type_end_of_turn   	= 5,
-	AW_cmd_type_create_game 		= 6,
-	AW_cmd_type_fill_game_list 	= 7,
-	AW_cmd_type_join_game 			= 8,
-	AW_cmd_type_seed_game 			= 9,
-	AW_cmd_type_leech_game 			= 10,
-	AW_cmd_type_ping 						= 11,
+	AW_cmd_type_join_game 			= 6,
+	AW_cmd_type_seed_game 			= 7,
+	AW_cmd_type_leech_game 			= 8,
+	AW_cmd_type_ping 						= 9,
 };
 
 #pragma pack(push, 1)
@@ -740,17 +738,13 @@ struct AW_end_of_turn_packet_t {
   AW_time_t 		frame_time_step;
   unsigned int 	hash;
 };
-struct AW_create_game_packet_t {
-	AW_cmd_type_t type;
-	char 					game_name[MAX_CHAR];
-	int 			 		player_count_per_team;
-	int 					team_count;
-};
 struct AW_fill_game_list_packet_t {
 	AW_cmd_type_t type;
 };
 struct AW_join_game_packet_t {
 	AW_cmd_type_t type;
+	int 			 		player_count_per_team;
+	int 					team_count;
 	char 					game_name[MAX_CHAR];
 };
 struct AW_seed_game_packet_t {
@@ -809,7 +803,7 @@ void 							CMD_FreeAll 		(AW_game_instance_t *gi);
  * cmd store
  */
 
-#define SHORT_CONNECTION_TIMEOUT 	5000
+#define SHORT_CONNECTION_TIMEOUT 	25000
 #define cmd_store(ptr)						(gi->cmd_stores[(ptr)])
 typedef short AW_cmd_store_ptr;
 
@@ -1110,11 +1104,9 @@ enum AW_peer_message_type_t {
 enum AW_state_t {
 	AW_state_main_menu 						= 1<<1,
 	AW_state_game 		 						= 1<<2,
-	AW_state_start 		 						= 1<<3,
-	AW_state_join 		 						= 1<<4,
-	AW_state_create 		 					= 1<<5,
-	AW_state_waiting_players 		 	= 1<<6,
-	AW_state_ready 		 						= 1<<7,
+	AW_state_join 		 						= 1<<3,
+	AW_state_waiting_players 		 	= 1<<4,
+	AW_state_ready 		 						= 1<<5,
 };
 
 // todo: split this for cache locallity 
@@ -1270,7 +1262,6 @@ struct AW_game_instance_t {
 																	flash_btn,
 																	close_btn;
 	AW_btn_list_t 									multi_btns,
-																	create_game_btns,
 																	join_game_btns,
 																	abilities_btns,
 																	central_hud_btns;
@@ -1315,9 +1306,7 @@ void 							GI_DisconnectFromMasterServer			(AW_game_instance_t *gi);
 void 							GI_KillHost												(AW_game_instance_t *gi);
 bool 							GI_ListenMasterServer 						(AW_game_instance_t *gi, ENetEvent *e);
 bool 							GI_CheckConnectionToMasterServer 	(AW_game_instance_t *gi, ENetEvent *e, AW_state_t current_state);
-bool 							GI_CreateGameOnMasterServer				(AW_game_instance_t *gi, const str &game_name);
-bool 							GI_JoinGameOnMasterServer					(AW_game_instance_t *gi, const str &game_name);
-bool 							GI_RefreshGameList								(AW_game_instance_t *gi);
+bool 							GI_JoinGameOnMasterServer					(AW_game_instance_t *gi);
 bool 							GI_GameReady											(AW_game_instance_t *gi);
 bool 							GI_PlayersConnected								(AW_game_instance_t *gi);
 void 							GI_Ping 													(AW_game_instance_t *gi, ENetEvent *e);

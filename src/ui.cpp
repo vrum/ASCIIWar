@@ -54,23 +54,6 @@ gi->multi_btns.btns[3].shortcut = 'Q';
 gi->multi_btns.btns[3].shortcut_special = TCODK_ESCAPE;
 BTN_CenterY(gi, &gi->multi_btns);
 
-// create
-gi->create_game_btns.btn_count = 2;
-gi->create_game_btns.pos_x = CON_RES_X/2;
-gi->create_game_btns.btns[0].color = TCOD_white;
-gi->create_game_btns.btns[0].s = "Game Name:";
-gi->create_game_btns.btns[0].highlight = false;
-gi->create_game_btns.btns[0].entry = false;
-gi->create_game_btns.btns[0].shortcut = -2;
-gi->create_game_btns.btns[0].shortcut_special = (TCOD_keycode_t)-1;
-gi->create_game_btns.btns[1].color = TCOD_white;
-gi->create_game_btns.btns[1].s = "";
-gi->create_game_btns.btns[1].highlight = false;
-gi->create_game_btns.btns[1].entry = true;
-gi->create_game_btns.btns[1].shortcut = 1;
-gi->create_game_btns.btns[1].shortcut_special = TCODK_ENTER;
-BTN_CenterY(gi, &gi->create_game_btns);
-
 // refresh
 gi->refresh_btn.color = TCOD_white;
 gi->refresh_btn.s = "(R)efresh";

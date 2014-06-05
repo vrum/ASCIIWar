@@ -1,4 +1,4 @@
-Pleae see root bin/ folder for dep license
+Pleae see root bin/ folder for deps license
 
 -------------------------------------------------------------------------
 

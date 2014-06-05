@@ -24,6 +24,7 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;
+(defn -main [& args])
 (ns lobby.core                                                                                                                                       
   (:import [org.eclipse.jetty.servlet ServletContextHandler ServletHolder]                                                                                                                                  
            org.eclipse.jetty.server.handler.ContextHandlerCollection)
@@ -34,7 +35,8 @@
      'ring.util.servlet
      'ring.util.response
      'compojure.core
-     '[ring.middleware.json :only [wrap-json-response]])
+     '[ring.middleware.json :only [wrap-json-response]]
+     '[clojure.java.shell :only [sh]])
 ;
 ;
 (def release? false)
@@ -42,6 +44,12 @@
 ;
 (def db-path "db/")
 (def user-path (str db-path "user/"))
+;
+;
+(def game-server (atom nil))
+(def waiting_players_1v1 (atom (list)))
+(def matched_players_1v1 (atom (list)))
+(def matcher_1v1 (agent nil))
 ;
 ;
 (defn user-exists? [username]
@@ -61,7 +69,8 @@
 ;
 ;
 (defn user-session-ok? [session username token]
-  (= token (session :token)))
+  (when (not (nil? (session :token)))
+    (= token (.toString (session :token)))))
 ;
 ;
 (defroutes handler
@@ -84,12 +93,34 @@
               (assoc :session session)))
         (response {:success false}))
       (response {:success false})))
-  (GET "/play/:username/:token" {{username :username token :token} :params session :session}
-    (println username token)
+  (GET "/play1v1/:username/:token" {{username :username token :token} :params session :session}
     (if (user-exists? username)
       (if (user-session-ok? session username token)
-        (response {:success true})
-        (response {:success false}))
+        (do
+          (swap! waiting_players_1v1 (fn [x] (cons {:username username :token token} x)))
+          (response {:success true}))
+        (response {:need-login true}))
+      (response {:need-register true})))
+  (GET "/wait1v1/:username/:token" {{username :username token :token} :params session :session}
+    (if (user-exists? username)
+      (if (user-session-ok? session username token)
+        (let [matched-p (filter #(and (= username (%1 :username)) 
+                                       (= token (%1 :token))) 
+                                 @matched_players_1v1)]
+          (if (not (empty? matched-p))
+            (let [matched-p (first matched-p)]
+              ; 'p' is matched and is going to play
+              ; it is removed from the matched players
+              (swap! matched_players_1v1 
+                     (fn [l] (filter #(or (not= username (%1 :username)) 
+                                          (not= token (%1 :token))) 
+                                     l)))
+              (response {:success      true 
+                         :game-name    (matched-p :game-name)
+                         :player-count (matched-p :player-count)
+                         :team-count   (matched-p :team-count)}))
+            (response {:success false})))
+        (response {:need-login true}))
       (response {:need-register true}))))
 ;
 ;
@@ -98,12 +129,12 @@
       (wrap-stacktrace)
       (wrap-json-response)
       (wrap-stacktrace)
-      (wrap-session {:cookie-attrs {:secure true :max-age (* 3600 24)}})
+      (wrap-session {:cookie-attrs {:secure release? :max-age (* 3600 24)}})
       (wrap-stacktrace)))
 ;
 ;
 (if release?
-  (defonce server (run-jetty #'app {:configurator (fn [server]
+  (defonce server (atom (run-jetty #'app {:configurator (fn [server]
                                                     (doseq [c (.getConnectors server)]
                                                       (when-not (or (nil? c) (instance? org.eclipse.jetty.server.ssl.SslSocketConnector c))
                                                         (.removeConnector server c)))
@@ -112,9 +143,42 @@
                                     :ssl? true
                                     :ssl-port 8080
                                     :keystore "keystore.jks"
-                                    :key-password (load-file "key.pass")}))
-  (defonce server (run-jetty #'app {:join? false :port 8080})))
-(.stop server)
+                                    :key-password (load-file "key.pass")})))
+  (defonce server (atom (run-jetty #'app {:join? false :port 8080}))))
+(.stop @server)
 ;
 ;
-(defn -main [& args])
+(defn match_them1v1 [_]
+  (loop []
+    (when (not (.isStopped @server))
+      ; match players
+      ; their are removed from waiting_players_1v1
+      (swap! 
+        waiting_players_1v1 
+        (fn [ps]
+          (loop [l ps]
+            (if (> (count l) 0)
+              (let [p     (first l)
+                    new-p (assoc p 
+                            :game-name    (java.util.UUID/randomUUID)
+                            :team-count   1 
+                            :player-count (+ 1 1))]
+                (swap! matched_players_1v1 (fn [x] (cons new-p x)))
+                (recur (rest l)))
+              (list)))))
+      (recur))))
+;
+;
+(defn start [with-gameserver?]
+  (when with-gameserver?
+    (swap! game-server 
+           (fn [_] (.. Runtime (getRuntime) 
+                   (exec "python gameserver.py")))))
+  (.start @server)
+  (send matcher_1v1 match_them1v1))
+;
+;
+(defn stop []
+  (when (not (nil? @game-server))
+    (.destroy @game-server))
+  (.stop @server))

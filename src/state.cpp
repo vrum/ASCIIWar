@@ -49,75 +49,48 @@ if(GI_InState(gi, AW_state_game)) {
   /* update turn */
   GI_UpdateTurn(gi);
 } else {
-  /* start */
-  if(GI_InState(gi, AW_state_start)) {
-    BTN_Render(gi, &gi->multi_btns);
-    if(BTN_IsClicked(gi, &gi->multi_btns.btns[0])) { /* join */
-      GI_ConnectToMasterServer(gi);
-      if(GI_RefreshGameList(gi)) {
-        GI_RemoveState(gi, AW_state_start);
-        GI_AddState(gi, AW_state_join);
-      }
-    }
-    if(BTN_IsClicked(gi, &gi->multi_btns.btns[1])) { /* create */
-      gi->create_game_btns.btns[1].s = "";
-      GI_ConnectToMasterServer(gi);
-      GI_RemoveState(gi, AW_state_start);
-      GI_AddState(gi, AW_state_create);
-    }
-    if(BTN_IsClicked(gi, &gi->multi_btns.btns[3])) { /* quit */
+  /* main menu */
+  if(GI_InState(gi, AW_state_main_menu)) {
+    LISTEN_MASTER_SERVER
+    GI_CheckConnectionToMasterServer(gi, &e, AW_state_main_menu);
+    if(BTN_IsClicked(gi, &gi->multi_btns.btns[3])) /* quit */
       AW_Quit();
-    }
   }
   /* join */
   if(GI_InState(gi, AW_state_join)) {
-    LISTEN_MASTER_SERVER
-    GI_CheckConnectionToMasterServer(gi, &e, AW_state_join);
-    BTN_Render(gi, &gi->join_game_btns);
-    BTN_Render(gi, &gi->refresh_btn);
-    if(BTN_IsClicked(gi, &gi->refresh_btn)) /* refresh */
-      GI_RefreshGameList(gi);
-    for(int f = 2; f < gi->join_game_btns.btn_count; f++) {
-      if(BTN_IsClicked(gi, &gi->join_game_btns.btns[f])) {
-        if(GI_JoinGameOnMasterServer(gi, gi->join_game_btns.btns[f].s)) {
-          game_desc.game_name           = gi->join_game_btns.btns[f].s;
-          GI_RemoveState(gi, AW_state_join);
-          GI_AddState(gi, AW_state_waiting_players);
-        }
-        break;
-      }
-    }
-  }
-  /* create */
-  if(GI_InState(gi, AW_state_create)) {
-    LISTEN_MASTER_SERVER
-    GI_CheckConnectionToMasterServer(gi, &e, AW_state_create);
-    BTN_UpdateEntry(gi, &gi->create_game_btns.btns[1]);
-    BTN_Render(gi, &gi->create_game_btns);
-    if(BTN_IsClicked(gi, &gi->create_game_btns.btns[1])) {
-      if(GI_CreateGameOnMasterServer(gi, gi->create_game_btns.btns[1].s)) {
-        game_desc.game_name           = gi->create_game_btns.btns[1].s;
-        GI_RemoveState(gi, AW_state_create);
+    if(GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
+      AW_Quit();
+    } else {
+      if(GI_JoinGameOnMasterServer(gi)) {
+        GI_RemoveState(gi, AW_state_join);
         GI_AddState(gi, AW_state_waiting_players);
       }
     }
   }
   /* waiting for players */
   if(GI_InState(gi, AW_state_waiting_players)) {
-    BTN_Render(gi, &gi->waiting_for_players_btn); 
-    if(GI_GameReady(gi)) {
-      GI_InitGame(gi, &game_desc, MOBA_InitGame);
-      GI_RemoveState(gi, AW_state_waiting_players);
-      GI_AddState(gi, AW_state_ready);
+    if(GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
+      AW_Quit();
+    } else {
+      BTN_Render(gi, &gi->waiting_for_players_btn); 
+      if(GI_GameReady(gi)) {
+        GI_InitGame(gi, &game_desc, MOBA_InitGame);
+        GI_RemoveState(gi, AW_state_waiting_players);
+        GI_AddState(gi, AW_state_ready);
+      }
     }
   }
   /* ready */
   if(GI_InState(gi, AW_state_ready)) {
-    BTN_Render(gi, &gi->ready_btn);
-    if(GI_PlayersConnected(gi)) {
-      GI_StartGame(gi, MOBA_StartGame);
-      GI_RemoveState(gi, AW_state_ready);
-      GI_AddState(gi, AW_state_game);
+    if(GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
+      AW_Quit();
+    } else {
+      BTN_Render(gi, &gi->ready_btn);
+      if(GI_PlayersConnected(gi)) {
+        GI_StartGame(gi, MOBA_StartGame);
+        GI_RemoveState(gi, AW_state_ready);
+        GI_AddState(gi, AW_state_game);
+      }
     }
   }
 }

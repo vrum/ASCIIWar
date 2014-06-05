@@ -58,10 +58,16 @@ int main(int _argc, char **_argv) {
   #if RELEASE
   	TCOD_console_credits();
   #endif
-  
+
+  assert(_argc >= 4);
+  game_desc.game_name             = (char*)argv[1];
+  game_desc.player_count_per_team = atoi((char*)argv[2]);
+  game_desc.team_count            = atoi((char*)argv[3]);
+
   // client game instance
 	GI_Init(&client_gi, argc, argv);
-	GI_AddState(&client_gi, AW_state_start);
+  GI_ConnectToMasterServer(&client_gi);
+	GI_AddState(&client_gi, AW_state_join);
 	while(run && !TCOD_console_is_window_closed())
 		GI_Update(&client_gi);
 
