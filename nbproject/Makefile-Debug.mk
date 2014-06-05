@@ -42,11 +42,11 @@ OBJECTFILES= \
 
 
 # C Compiler Flags
-CFLAGS=-ffloat-store -march=i686 -msse -mfpmath=sse
+CFLAGS=-ffloat-store -march=i686 -msse -mfpmath=sse -g
 
 # CC Compiler Flags
-CCFLAGS=-ffloat-store -march=i686 -msse -mfpmath=sse
-CXXFLAGS=-ffloat-store -march=i686 -msse -mfpmath=sse
+CCFLAGS=-ffloat-store -march=i686 -msse -mfpmath=sse -g
+CXXFLAGS=-ffloat-store -march=i686 -msse -mfpmath=sse -g
 
 # Fortran Compiler Flags
 FFLAGS=
@@ -63,7 +63,7 @@ LDLIBSOPTIONS=-Ldep/SDL-1.2.15/lib -Ldep/libtcod-1.5.2/lib -Ldep/jansson-2.6/dis
 
 bin/ASCIIWar.exe: ${OBJECTFILES}
 	${MKDIR} -p bin
-	${LINK.cc} -o bin/ASCIIWar ${OBJECTFILES} ${LDLIBSOPTIONS} -lmingw32 -mwindows -llibtcod -lenet-1.3.11 -lSDLmain -lSDL -lsdlmixer -lws2_32 -lwinmm -ljansson-2.6 -lzlib-1.2.8 -static-libgcc -static-libstdc++ -mthreads
+	${LINK.cc} -g -o bin/ASCIIWar ${OBJECTFILES} ${LDLIBSOPTIONS} -lmingw32 -mwindows -llibtcod -lenet-1.3.11 -lSDLmain -lSDL -lsdlmixer -lws2_32 -lwinmm -ljansson-2.6 -lzlib-1.2.8 -static-libgcc -static-libstdc++ -mthreads
 
 ${OBJECTDIR}/src/asciiwar.o: src/asciiwar.cpp 
 	${MKDIR} -p ${OBJECTDIR}/src
