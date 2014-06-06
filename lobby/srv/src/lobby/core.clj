@@ -26,7 +26,6 @@
 ;
 ; https://crackstation.net/hashing-security.htm
 ;
-(defn -main [& args])
 (ns lobby.core                                                                                                                                       
   (:import [org.eclipse.jetty.servlet ServletContextHandler ServletHolder]                                                                                                                                  
            org.eclipse.jetty.server.handler.ContextHandlerCollection)
@@ -247,3 +246,6 @@
   (when (not (nil? @game-server))
     (.destroy @game-server))
   (.stop @server))
+;
+;
+(defn -main [& args])
