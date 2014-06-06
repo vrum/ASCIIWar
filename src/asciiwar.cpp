@@ -5354,6 +5354,7 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   gi->add_state_count = 0;
   gi->remove_state_count = 0;
   gi->minimap_cleared = true;
+  gi->frame_time = 0;
   gi->frame_mark = 0;
   gi->aver_frame_times_counter = 0;
   gi->aver_wait_times_counter = 0;
@@ -5820,7 +5821,7 @@ void GI_Update(AW_game_instance_t *gi) {
   if(frame_time < 0 || gi->game_time_acc < 0) 
       trace(str("bug ") + f2a(frame_time) + " " + f2a(gi->game_time_acc) + " " + f2a(gi->game_time_step));
   if(frame_time < 0) frame_time = 0; // the bug (tm)
-  gi->frame_time = MAX(1, frame_time);
+  gi->frame_time = MIN(MAX(1, frame_time), MAX_FRAME_TIME);
   gi->last_t     = t;
   // clear
   TCOD_console_clear(con);
@@ -6150,6 +6151,7 @@ void GI_ConnectToMasterServer(AW_game_instance_t *gi) {
   assert(gi->host != null);
   gi->peer = enet_host_connect(gi->host, &gi->master_server_addr, 1, 0);
   gi->connection_acc = 0;
+  gi->frame_time = 0;
   gi->connected = false;
   enet_host_flush(gi->host);
   assert(gi->peer != null);
@@ -6200,8 +6202,11 @@ bool GI_CheckConnectionToMasterServer(AW_game_instance_t *gi, ENetEvent *e, AW_s
     default:
       if(!gi->connected) {
         gi->connection_acc += gi->frame_time;
+        if(gi->connection_acc > 1000)
+          trace(gi->connection_acc);
         if(gi->connection_acc > SHORT_CONNECTION_TIMEOUT) {
-          trace("GI_ConnectToMasterServer: cannot connect to master server.");
+          gi->connection_acc = 0;
+          trace("GI_CheckConnectionToMasterServer: cannot connect to master server.");
           GI_FailureFlash(gi, "Cannot connect to master server.");
           GI_RemoveState(gi, current_state);
           GI_AddState(gi, AW_state_main_menu);

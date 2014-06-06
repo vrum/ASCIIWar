@@ -93,7 +93,8 @@ typedef string str;
 #define MAX_TURN_FRAME_COUNT				20
 #define MAX_AVER_FRAME_TIMES 				300
 #define MAX_AVER_WAIT_TIMES 				1
-#define MAX_MAX_PING_TIMES 					100								
+#define MAX_MAX_PING_TIMES 					100	
+#define MAX_FRAME_TIME 							(MAX_TURN_FRAME_COUNT*NORMAL_TIME_STEP)							
 #define ZLIB_CHUNK									(1<<18)
 #define MAX_CHAR  									64
 #define SMALL_SIZE									32
