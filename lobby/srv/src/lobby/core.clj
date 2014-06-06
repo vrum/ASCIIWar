@@ -24,6 +24,8 @@
 ; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;
+; https://crackstation.net/hashing-security.htm
+;
 (defn -main [& args])
 (ns lobby.core                                                                                                                                       
   (:import [org.eclipse.jetty.servlet ServletContextHandler ServletHolder]                                                                                                                                  
@@ -37,6 +39,7 @@
      'compojure.core
      '[ring.middleware.json :only [wrap-json-response]]
      '[clojure.java.shell :only [sh]])
+(require '[crypto.password.pbkdf2 :as password])
 ;
 ;
 (def release? false)
@@ -68,7 +71,7 @@
 ;
 ;
 (defn user-ok? [username password]
-  (= password ((get-user username) :password)))
+  (password/check password ((get-user username) :password)))
 ;
 ;
 (defn user-session-ok? [session username token]
@@ -80,7 +83,7 @@
   (GET "/register/:username/:password" {{username :username password :password} :params session :session}
     (if (user-exists? username)
       (response {:already-exist? true})
-      (let [user-db {:username username :password password}
+      (let [user-db {:username username :password (password/encrypt password)}
             f       (str user-path username)
             token   (java.util.UUID/randomUUID)
             session (assoc session :token token)]

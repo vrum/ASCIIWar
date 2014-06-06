@@ -9,5 +9,6 @@
 																	[org.eclipse.jetty/jetty-server "7.6.1.v20120215"]                                                                                                                                         
 																	[org.eclipse.jetty/jetty-servlet "7.6.1.v20120215"]
 																	[compojure "1.1.8"]
+																	[crypto-password "0.1.3"]
 																	[ring/ring-json "0.3.1"]]
   :main lobby.core)
