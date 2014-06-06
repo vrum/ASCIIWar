@@ -6216,11 +6216,6 @@ bool GI_CheckConnectionToMasterServer(AW_game_instance_t *gi, ENetEvent *e, AW_s
 }
 
 bool GI_JoinGameOnMasterServer(AW_game_instance_t *gi) {
-  bool not_done = true;
-  while(!gi->connected && not_done) {
-    LISTEN_MASTER_SERVER
-    not_done = GI_CheckConnectionToMasterServer(gi, &e, AW_state_join);
-  }
   if(gi->connected) {
     trace("Joining game: " + game_desc.game_name);
     GI_SuccessFlash(gi, "Game created successfully.");

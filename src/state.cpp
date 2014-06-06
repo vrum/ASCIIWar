@@ -61,6 +61,8 @@ if(GI_InState(gi, AW_state_game)) {
     if(GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
       AW_Quit();
     } else {
+      LISTEN_MASTER_SERVER
+      GI_CheckConnectionToMasterServer(gi, &e, AW_state_join);
       if(GI_JoinGameOnMasterServer(gi)) {
         GI_RemoveState(gi, AW_state_join);
         GI_AddState(gi, AW_state_waiting_players);
