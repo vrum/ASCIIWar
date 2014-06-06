@@ -2,7 +2,7 @@
  * :
  */
 var asciiwar = {};
-asciiwar.release = false;
+asciiwar.release = true;
 
 console.log("release ", asciiwar.release);
 
@@ -15,14 +15,16 @@ console.log("login url ", asciiwar.url);
 
 asciiwar.play = function(what) {
   console.log('play' + what);
+  if(asciiwar.wait_obj)
+    asciiwar.wait_obj = undefined;
+  $("#flash-login").html("<span class='success'>waiting players...</span>");
   $.ajax({
     type: "GET", 
     url: asciiwar.url + "play" + what + "/" + login.username + "/" + login.token,
     success: function(d) {
       console.log(d);
       if(d.success) {
-        $("#flash-login").html("<span class='success'>waiting players...</span>");
-        $.ajax({
+        asciiwar.wait_obj = {
           type: "GET", 
           url: asciiwar.url + "wait" + what + "/" + login.username + "/" + login.token,
           success: function(d) {
@@ -36,13 +38,15 @@ asciiwar.play = function(what) {
                 d['player-count'] + " " +
                 d['team-count']);
             } else {
-              $.ajax(this);
+              if(asciiwar.wait_obj)
+                $.ajax(asciiwar.wait_obj);
             }
           },
           error: function() {
             $("#flash-login").html("<span class='failure'>cannot connect to server</span>");
           }
-        });
+        };
+        $.ajax(asciiwar.wait_obj);
         console.log("cool");
       } else {
         $("#flash-login").html("<span class='failure'>Server error</span>");

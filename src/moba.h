@@ -25,11 +25,8 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define TEAM_COUNT                  2
-
 #define MOBS_SPAWN_TIME             45000
 #define PLAYER_COUNT_PER_TEAM       (1 + /* mobs */ 1)
-
 
 #define START_HUD_INFO_X            25
 #define START_HUD_INFO_X2           (START_HUD_INFO_X+15)
@@ -257,7 +254,7 @@ struct AW_mobs_ai_client_t {
 #define LEFT_LANE               2
 /* 0 is human */
 #define MOBS_AI_CLIENT          1
-#define HUD_CENTRAL_INFO_COUNT  6
+#define HUD_CENTRAL_INFO_COUNT  (HUD_HEIGHT-3)
 #define MAX_HUD_CENTRAL_INFO    (HUD_CENTRAL_INFO_COUNT*2)
 #define DEMI_XP_RADIUS          15
 

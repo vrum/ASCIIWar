@@ -105,7 +105,7 @@ typedef string str;
 #define COLOR(C) 										((((C).r)<<16) + (((C).g)<<8) + (((C).b)<<0))
 #define AMBIENT_LIGHT 							50
 #define AMBIENT_LIGHTMAP 						TCOD_color_multiply_scalar(TCOD_color_RGB(97, 157, 180), 1)
-#define UNIT_AO_STRENGTH 						0.90f
+#define UNIT_AO_STRENGTH 						0.95f
 #define DIR_LIGHTMAP_X 							16
 #define DIR_LIGHTMAP_Y 							16
 #define DIR_LIGHTMAP_COLOR 					TCOD_color_multiply_scalar(TCOD_color_RGB(255, 222, 0), 1)
@@ -248,25 +248,27 @@ typedef string str;
 #define MAX_DEADLOCK_TELEPORT 			(SIZE(un)*6)
 #define MAX_ADVANCE_TURN 						10
 
-#define EMPTY_COLOR 		TCOD_color_RGB(94, 61, 40)//TCOD_color_RGB(116, 88, 62)//TCOD_color_RGB(94, 61, 40)
-#define WALL_COLOR 			TCOD_color_RGB(59, 79, 117)//TCOD_color_RGB(76, 91, 118)//TCOD_color_RGB(158, 145, 126)//TCOD_color_RGB(76, 91, 118)//TCOD_dark_grey
-#define WATER_COLOR 		TCOD_blue
-#define WATER2_COLOR 		TCOD_darkest_blue
-#define GRASS_COLOR 		TCOD_color_RGB(52, 214, 52)
-#define BUSH1_COLOR 		TCOD_color_RGB(0, 142, 0)
-#define BUSH2_COLOR 		TCOD_color_RGB(0, 130, 0)
-#define TREE1_COLOR 		TCOD_color_RGB(0, 100, 0)
-#define TREE2_COLOR 		TCOD_color_RGB(0, 150, 0)
-#define TREE3_COLOR 		TCOD_color_RGB(0, 135, 0)
-#define MUSH_COLOR 			TCOD_color_RGB(230, 10, 5)
-#define TILE_COLOR 			TCOD_dark_grey
-#define TILE2_COLOR 		TCOD_light_grey
-#define TORCH_COLOR 		TCOD_amber
-#define PLANK_COLOR 		TCOD_color_RGB(97, 58, 16)
-#define PLANK2_COLOR 		TCOD_color_RGB(73, 37, 10)
-#define BLUE 						TCOD_color_RGB(34, 70, 192)//TCOD_color_RGB(34, 90, 192)
-#define RED 						TCOD_color_RGB(233, 29, 29)
-#define BLOOD_COLOR 		TCOD_color_RGB(195, 25, 12)
+#define BACKGROUND_COLOR 	TCOD_color_RGB(10, 10, 10)
+#define SPEC_COLOR 				TCOD_color_RGB(20, 20, 20)
+#define EMPTY_COLOR 			TCOD_color_RGB(94, 61, 40)//TCOD_color_RGB(116, 88, 62)//TCOD_color_RGB(94, 61, 40)
+#define WALL_COLOR 				TCOD_color_RGB(59, 79, 117)//TCOD_color_RGB(76, 91, 118)//TCOD_color_RGB(158, 145, 126)//TCOD_color_RGB(76, 91, 118)//TCOD_dark_grey
+#define WATER_COLOR 			TCOD_blue
+#define WATER2_COLOR 			TCOD_darkest_blue
+#define GRASS_COLOR 			TCOD_color_RGB(52, 150, 52)
+#define BUSH1_COLOR 			TCOD_color_RGB(0, 142, 0)
+#define BUSH2_COLOR 			TCOD_color_RGB(0, 130, 0)
+#define TREE1_COLOR 			TCOD_color_RGB(0, 100, 0)
+#define TREE2_COLOR 			TCOD_color_RGB(0, 150, 0)
+#define TREE3_COLOR 			TCOD_color_RGB(0, 135, 0)
+#define MUSH_COLOR 				TCOD_color_RGB(230, 10, 5)
+#define TILE_COLOR 				TCOD_dark_grey
+#define TILE2_COLOR 			TCOD_light_grey
+#define TORCH_COLOR 			TCOD_amber
+#define PLANK_COLOR 			TCOD_color_RGB(97, 58, 16)
+#define PLANK2_COLOR 			TCOD_color_RGB(73, 37, 10)
+#define BLUE 							TCOD_color_RGB(34, 70, 240)//TCOD_color_RGB(34, 90, 192)
+#define RED 							TCOD_color_RGB(240, 29, 29)
+#define BLOOD_COLOR 			TCOD_color_RGB(195, 25, 12)
 
 #define	AW_EMPTY 		'.' 	
 #define	AW_WALL  		'#'
@@ -1246,7 +1248,8 @@ struct AW_game_instance_t {
 	bool 														show_all,
 																	show_lagometer;
 	#endif		
-  bool 														render_bloom;
+  bool 														render_bloom,
+  																render_spec;
   /* callbacks */
   AW_free_all_cb_t 								free_all_cb; 				
   AW_update_client_cb_t update_client_cb;

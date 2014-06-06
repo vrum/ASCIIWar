@@ -11,5 +11,10 @@ $(function(){
     if(e.keyCode === 27) {
       gui.App.quit();
     }
+    if(e.keyCode == 13){
+      console.log("click");
+      window.location.href = $('#login-btn').attr("href");
+    }
   });
+  $("#login-username").focus();
 });

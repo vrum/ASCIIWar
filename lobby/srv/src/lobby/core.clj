@@ -41,7 +41,7 @@
 (require '[crypto.password.pbkdf2 :as password])
 ;
 ;
-(def release? false)
+(def release? true)
 ;
 ;
 (def db-path "db/")
@@ -103,6 +103,10 @@
     (if (user-exists? username)
       (if (user-session-ok? session username token)
         (do
+          (swap! waiting_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (swap! waiting_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
           (swap! waiting_players_1v0 (fn [x] (cons {:username username :token token} x)))
           (response {:success true}))
         (response {:need-login true}))
@@ -117,10 +121,8 @@
             (let [matched-p (first matched-p)]
               ; 'p' is matched and is going to play
               ; it is removed from the matched players
-              (swap! matched_players_1v0 
-                     (fn [l] (filter #(or (not= username (%1 :username)) 
-                                          (not= token (%1 :token))) 
-                                     l)))
+              (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+              (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
               (response {:success      true 
                          :game-name    (matched-p :game-name)
                          :player-count (matched-p :player-count)
@@ -132,6 +134,10 @@
     (if (user-exists? username)
       (if (user-session-ok? session username token)
         (do
+          (swap! waiting_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (swap! waiting_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
           (swap! waiting_players_1v1 (fn [x] (cons {:username username :token token} x)))
           (response {:success true}))
         (response {:need-login true}))
@@ -146,10 +152,8 @@
             (let [matched-p (first matched-p)]
               ; 'p' is matched and is going to play
               ; it is removed from the matched players
-              (swap! matched_players_1v1 
-                     (fn [l] (filter #(or (not= username (%1 :username)) 
-                                          (not= token (%1 :token))) 
-                                     l)))
+              (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+              (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
               (response {:success      true 
                          :game-name    (matched-p :game-name)
                          :player-count (matched-p :player-count)
@@ -168,18 +172,20 @@
       (wrap-stacktrace)))
 ;
 ;
-(if release?
-  (defonce server (atom (run-jetty #'app {:configurator (fn [server]
-                                                    (doseq [c (.getConnectors server)]
-                                                      (when-not (or (nil? c) (instance? org.eclipse.jetty.server.ssl.SslSocketConnector c))
-                                                        (.removeConnector server c)))
-                                                    server)
-                                    :join? false
-                                    :ssl? true
-                                    :ssl-port 8080
-                                    :keystore "keystore.jks"
-                                    :key-password (load-file "key.pass")})))
-  (defonce server (atom (run-jetty #'app {:join? false :port 8080}))))
+(defonce server (atom (run-jetty #'app
+  (if release?
+     {:configurator (fn [server]
+                      (doseq [c (.getConnectors server)]
+                        (when-not (or (nil? c) 
+                                      (instance? org.eclipse.jetty.server.ssl.SslSocketConnector c))
+                          (.removeConnector server c)))
+                      server)
+      :join? false
+      :ssl? true
+      :ssl-port 8080
+      :keystore "keystore.jks"
+      :key-password (load-file "key.pass")}
+    {:join? false :port 8080}))))
 (.stop @server)
 ;
 ;
@@ -199,7 +205,7 @@
                             :team-count   1 
                             :player-count (+ 1 1))]
                 (swap! matched_players_1v0 (fn [x] (cons new-p x)))
-                (recur (rest l)))
+                (recur (drop 1 l)))
               l))))
       (recur))))
 ;

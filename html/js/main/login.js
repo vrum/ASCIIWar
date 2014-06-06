@@ -64,6 +64,7 @@ login.login = function() {
   var username = $("#login-username").val();
   var password = $("#login-password").val();
   if(login.check(username, password)) {
+    $("#flash-login").html("<span class='success'>Login, please wait...</span>");
     $.ajax({
       type: "GET", 
       url: asciiwar.url + "login/" + username + "/" + password,
@@ -84,4 +85,9 @@ login.login = function() {
       }
     });
   }
+}
+
+login.logoff = function() {
+  alert("yop");
+  console.log("logoff");
 }

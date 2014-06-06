@@ -60,10 +60,10 @@ void BTN_Render(AW_game_instance_t *gi, AW_btn_t *b) {
         if(INSIDE_FULL_CON(i, b->pos_y))
           TCOD_console_set_char_background(con, i, b->pos_y, map[f], TCOD_BKGND_SET);
     }
-  } else
+  } /*else
     for(int i = b->pos_x-BTN_GLARE_SIZE/2; i < b->pos_x+b->s.length()+BTN_GLARE_SIZE/2; i++)
       if(INSIDE_FULL_CON(i, b->pos_y))
-        TCOD_console_set_char_background(con, i, b->pos_y, TCOD_black, TCOD_BKGND_SET);
+        TCOD_console_set_char_background(con, i, b->pos_y, TCOD_black, TCOD_BKGND_SET);*/
   if(b->entry
   && INSIDE_FULL_CON(b->pos_x+b->s.length(), b->pos_y))
     if((gi->frame_mark&31) < 16)
@@ -1969,8 +1969,10 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
   if(GI_IsKeyReleased(gi, TCODK_F4))
     gi->show_lagometer = !gi->show_lagometer;
   #endif
-  if(GI_IsKeyReleased(gi, TCODK_F6))
+  if(GI_IsKeyReleased(gi, TCODK_F6)) {
     gi->render_bloom = !gi->render_bloom;
+    gi->render_spec = !gi->render_spec;
+  }
 }
 
 void CL_UpdateHUD(AW_game_instance_t *gi, AW_client_ptr c) {
@@ -2115,6 +2117,12 @@ void CL_RenderBlood(AW_game_instance_t *gi, AW_client_ptr c) {
         i,
         j,
         TCOD_color_lerp(c, bl->c, (float)0.5f*pow((float)bl->span/BLOOD_LIFE_SPAN, 0.3)*light/255));
+      TCOD_console_set_char_background(
+        con,
+        i,
+        j,
+        TCOD_color_lerp(c, bl->c, (float)0.5f*pow((float)bl->span/BLOOD_LIFE_SPAN, 0.3)*light/255),
+        TCOD_BKGND_SET);
     }
     b = bl->next;
   }
@@ -2210,7 +2218,8 @@ void CL_RenderEnvMap(AW_game_instance_t *gi, AW_client_ptr c) {
           TCOD_color_RGB(255-light, 255-light, 255-light),
           TCOD_color_RGB(255*smoke, 255*smoke, 255*smoke)); //TCOD_image_get_pixel(gi->fog_mask, i, j);
       int fog = 0;
-      bool is_wall = AT_ENV(i>>RANGE_SHIFT, j>>RANGE_SHIFT) == AW_WALL;
+      bool is_wall = AT_ENV(i>>RANGE_SHIFT, j>>RANGE_SHIFT) == AW_WALL,
+           is_obj = false;
       if(fog_mask.r > 0
       && !is_wall) {
         float coords[2];
@@ -2277,22 +2286,38 @@ void CL_RenderEnvMap(AW_game_instance_t *gi, AW_client_ptr c) {
         spec_f    = 1.f;
         spec_exp  = 1.f;
       }
+      if(env_char == AW_TORCH
+      || env_char == AW_MUSH)
+        is_obj = true;
       float spec = SATURATE(V[0] * R[0] + V[1] * R[1] + V[2] * R[2]);
-      spec = pow(spec, spec_exp) * (float)AT(shadow_map, i, j);
+      if(gi->render_spec
+      || env_char == AW_WATER
+      || env_char == AW_WATER2)
+        spec = pow(spec, spec_exp) * (float)AT(shadow_map, i, j);
+      else
+        spec = 0;
       /* colors */
+      TCOD_color_t cp = c;
+      TCOD_color_set_value(&cp, TCOD_color_get_value(c)*0.4);
       TCOD_color_t c1 = TCOD_color_add(
-                          TCOD_color_multiply_scalar(c, (float)light/255), 
-                          TCOD_color_multiply_scalar(TCOD_color_RGB(75, 75, 75), spec_f*spec*(float)light/255)),
+                          TCOD_color_add(
+                            TCOD_color_multiply_scalar(c, (float)light/255), 
+                            TCOD_color_multiply_scalar(SPEC_COLOR, spec_f*spec*(float)light/255)),
+                          TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l)),
                    c2 = TCOD_color_add(
-                          TCOD_color_multiply_scalar(TCOD_color_RGB(10, 10, 10), (float)light/255),
-                          TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l));
+                          TCOD_color_add(
+                            TCOD_color_multiply_scalar(cp, (float)light/255), 
+                            TCOD_color_multiply_scalar(SPEC_COLOR, 1.f*spec*(float)light/255)), 
+                          TCOD_color_add(
+                            TCOD_color_multiply_scalar(BACKGROUND_COLOR, (float)light/255),
+                            TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l)));
       TCOD_console_put_char_ex(
         con, 
         i-cl->viewport_x, 
         j-cl->viewport_y, 
         AT(env_art_map, i, j), 
-        is_wall ? c2 : c1, 
-        is_wall ? c1 : c2);
+        is_wall ? c2 : is_obj ? c1 : c1, 
+        is_wall ? c1 : is_obj ? c2 : c1);
   }
 }
 
@@ -2371,20 +2396,31 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
               R[f] /= R_len;
             }
             float spec = SATURATE(V[0] * R[0] + V[1] * R[1] + V[2] * R[2]);
-            spec = pow(spec, 10) * (float)AT(shadow_map, un2->pos_x+i, un2->pos_y+j);
+            if(gi->render_spec)
+              spec = pow(spec, 10) * (float)AT(shadow_map, un2->pos_x+i, un2->pos_y+j);
+            else
+              spec = 0;
+            TCOD_color_t cp = c;
+            TCOD_color_set_value(&cp, TCOD_color_get_value(c)*0.4);
             TCOD_console_put_char_ex(
               con, 
               un2->pos_x+i-cl->viewport_x, 
               un2->pos_y+j-cl->viewport_y, 
               ASCII(un2)[SIZE(un2)*(j+_half)+(i+_half)], 
               TCOD_color_add(
-                TCOD_color_multiply_scalar(c, (float)light/255), 
-                TCOD_color_multiply_scalar(TCOD_color_RGB(75, 75, 75), 1.f*spec*(float)light/255)),
-              TCOD_color_add(
-                TCOD_color_multiply_scalar(TCOD_color_RGB(20, 20, 20), (float)light/255),
                 TCOD_color_add(
-                  TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l),
-                  TCOD_color_multiply_scalar(TCOD_color_RGB(75, 75, 75), 1.f*spec*(float)light/255))));
+                  TCOD_color_multiply_scalar(c, (float)light/255), 
+                  TCOD_color_multiply_scalar(SPEC_COLOR, 1.f*spec*(float)light/255)),
+                TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l)),
+              TCOD_color_add(
+                TCOD_color_add(
+                  TCOD_color_multiply_scalar(cp, (float)light/255), 
+                  TCOD_color_multiply_scalar(SPEC_COLOR, 1.f*spec*(float)light/255)), 
+                TCOD_color_add(
+                  TCOD_color_multiply_scalar(BACKGROUND_COLOR, (float)light/255),
+                  TCOD_color_add(
+                    TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l),
+                    TCOD_color_multiply_scalar(SPEC_COLOR, 1.f*spec*(float)light/255)))));
           }
         }
       }
@@ -2416,6 +2452,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             AW_unit_ptr u3 = AT(unit_map, x_env, y_env);
             if(INSIDE_MAP(x, y)
             && u3 == AW_null
+            && AT(shadow_map, x_env, y_env)
             && AT_ENV(x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT) 
             != AW_WALL) {
               int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
@@ -2428,8 +2465,10 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
               g = MAX(TCOD_darker_grey.g, g);
               b = MAX(TCOD_darker_grey.b, b);*/
               c = TCOD_color_RGB(r, g, b);
-              if(INSIDE_CON(x,y))
+              if(INSIDE_CON(x,y)) {
                 TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)light/255));
+                TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)light/255), TCOD_BKGND_SET);
+              }
             }
           } while(!TCOD_line_step(&x, &y));
         }
@@ -2446,6 +2485,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
           x_env = un2->pos_x-halfes[SIZE(un2)-1]-1+f,
           y_env = un2->pos_y-halfes[SIZE(un2)-1]+SIZE(un2),
@@ -2458,6 +2498,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
         }
         DO_TIMES(SIZE(un2)) {
@@ -2472,6 +2513,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
           x_env = un2->pos_x-halfes[SIZE(un2)-1]+SIZE(un2),
           y_env = un2->pos_y-halfes[SIZE(un2)-1]+f,
@@ -2484,6 +2526,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
         }
       }
@@ -2628,7 +2671,10 @@ void CL_RenderBalls(AW_game_instance_t *gi, AW_client_ptr c) {
           R[f] /= R_len;
         }
         float spec = SATURATE(V[0] * R[0] + V[1] * R[1] + V[2] * R[2]);
-        spec = pow(spec, 10) * (float)AT(shadow_map, ba->pos_x, ba->pos_y);
+        if(gi->render_spec)
+          spec = pow(spec, 10) * (float)AT(shadow_map, ba->pos_x, ba->pos_y);
+        else
+          spec = 0;
         TCOD_console_put_char_ex(
           con, 
           ba->pos_x-cl->viewport_x, 
@@ -2636,12 +2682,8 @@ void CL_RenderBalls(AW_game_instance_t *gi, AW_client_ptr c) {
           '0', 
           TCOD_color_add(
             TCOD_color_multiply_scalar(c, (float)light/255), 
-            TCOD_color_multiply_scalar(TCOD_color_RGB(75, 75, 75), 1.f*spec*(float)light/255)),
-          TCOD_color_add(
-            TCOD_color_multiply_scalar(TCOD_color_RGB(20, 20, 20), (float)light/255),
-            TCOD_color_add(
-              TCOD_color_multiply(TCOD_color_RGB(fog, fog, fog), l),
-              TCOD_color_multiply_scalar(TCOD_color_RGB(75, 75, 75), 1.f*spec*(float)light/255))));
+            TCOD_color_multiply_scalar(SPEC_COLOR, 1.f*spec*(float)light/255)),
+          TCOD_console_get_char_background(con, ba->pos_x-cl->viewport_x, ba->pos_y-cl->viewport_y));
       }
     }
     b = ba->next;
@@ -5346,7 +5388,8 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   gi->show_all = false;
   gi->show_lagometer = false;
   #endif
-  gi->render_bloom = true;
+  gi->render_bloom = false;
+  gi->render_spec  = false;
   gi->host = null;
   gi->peer = null;
   gi->master_server_addr.port = MASTER_SERVER_PORT;
@@ -5572,8 +5615,8 @@ void GI_InitEnvMap(AW_game_instance_t *gi) {
     if(IS_COLOR(0, 255, 0)) {
       AT(env_art_map, x, y) = AW_GRASS;
       c2 = GRASS_COLOR;
-      f1 = 0.3f;
-      f2 = 0.5f;
+      f1 = 0.3f/2;
+      f2 = 0.5f/2;
       f4 = 1.f;
     }
     else
@@ -5711,7 +5754,7 @@ void GI_InitEnvMap(AW_game_instance_t *gi) {
     c3 = TCOD_color_multiply_scalar(c3, SATURATE(dot));
     AT(static_light_map, x, y) = TCOD_color_add(AT(static_light_map, x, y), c3);
     /* ambient occlusion */
-    int s = 8;
+    int s = 16;
     float count = s*s;
     FOR_RECT(-s/2, +s/2-1, -s/2, +s/2-1) {
       if(!INSIDE_MAP(x+i, y+j)
