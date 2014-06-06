@@ -13,18 +13,18 @@ else
 
 console.log("login url ", asciiwar.url);
 
-asciiwar.play1v1 = function() {
-  console.log('play1v1');
+asciiwar.play = function(what) {
+  console.log('play' + what);
   $.ajax({
     type: "GET", 
-    url: asciiwar.url + "play1v1/" + login.username + "/" + login.token,
+    url: asciiwar.url + "play" + what + "/" + login.username + "/" + login.token,
     success: function(d) {
       console.log(d);
       if(d.success) {
-        $("#flash-login").html("<span class='success'>Launching...</span>");
+        $("#flash-login").html("<span class='success'>waiting players...</span>");
         $.ajax({
           type: "GET", 
-          url: asciiwar.url + "wait1v1/" + login.username + "/" + login.token,
+          url: asciiwar.url + "wait" + what + "/" + login.username + "/" + login.token,
           success: function(d) {
             console.log(d);
             if(d.success) {
@@ -37,7 +37,6 @@ asciiwar.play1v1 = function() {
                 d['team-count']);
             } else {
               $.ajax(this);
-              console.log("waiting...");
             }
           },
           error: function() {

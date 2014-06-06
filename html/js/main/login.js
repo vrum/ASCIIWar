@@ -2,6 +2,15 @@ var login = {};
 
 login.min_length = 6;
 
+var play_module = " \
+  <div id='play'> \
+  <div class='hero-unit'> \
+    <div> <a class='btn btn-small' href='javascript:asciiwar.play(\"1v0\")'>Play 1v0</a></div> \
+    <div> <a class='btn btn-small' href='javascript:asciiwar.play(\"1v1\")'>Play 1v1</a></div> \
+    <div id='flash-login'></div> \
+  </div> \
+  </div>"
+
 login.check = function(username, password) {
   if(username == ""
   || password == "") {
@@ -34,14 +43,7 @@ login.register = function() {
           login.username = username;
           login.token = d.token;
           $("#login").remove();
-          $("#top").append(" \
-            <div id='play'> \
-            <div class='hero-unit'> \
-              <div> <a class='btn btn-small' href='javascript:asciiwar.play1v1()'>Play 1v1</a> \
-              <div id='flash-login'></div> \
-            </div> \
-            </div> \
-            </div>");
+          $("#top").append(play_module);
           $("#flash-login").html("<span class='success'>Success</span>");
         } else 
         if(d["already-exist?"]) {
@@ -71,14 +73,7 @@ login.login = function() {
           login.username = username;
           login.token = d.token;
           $("#login").remove();
-          $("#top").append(" \
-            <div id='play'> \
-            <div class='hero-unit'> \
-              <div> <a class='btn btn-small' href='javascript:asciiwar.play1v1()'>Play 1v1</a> \
-              <div id='flash-login'></div> \
-            </div> \
-            </div> \
-            </div>");
+          $("#top").append(play_module);
           $("#flash-login").html("<span class='success'>Success</span>");
         } else {
           $("#flash-login").html("<span class='failure'>incorrect username or password</span>");

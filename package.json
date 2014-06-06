@@ -1,6 +1,7 @@
 {
   "name": "ASCIIWar",
   "main": "index.html",
+  "single-instance": false,
   "window": {
     "toolbar": true,
     "width": 1024,
