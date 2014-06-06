@@ -5821,7 +5821,7 @@ void GI_Update(AW_game_instance_t *gi) {
   if(frame_time < 0 || gi->game_time_acc < 0) 
       trace(str("bug ") + f2a(frame_time) + " " + f2a(gi->game_time_acc) + " " + f2a(gi->game_time_step));
   if(frame_time < 0) frame_time = 0; // the bug (tm)
-  gi->frame_time = MIN(MAX(1, frame_time), MAX_FRAME_TIME);
+  gi->frame_time = MIN(frame_time, MAX_FRAME_TIME);
   gi->last_t     = t;
   // clear
   TCOD_console_clear(con);
@@ -6202,8 +6202,6 @@ bool GI_CheckConnectionToMasterServer(AW_game_instance_t *gi, ENetEvent *e, AW_s
     default:
       if(!gi->connected) {
         gi->connection_acc += gi->frame_time;
-        if(gi->connection_acc > 1000)
-          trace(gi->connection_acc);
         if(gi->connection_acc > SHORT_CONNECTION_TIMEOUT) {
           gi->connection_acc = 0;
           trace("GI_CheckConnectionToMasterServer: cannot connect to master server.");
