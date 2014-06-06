@@ -3,7 +3,7 @@
   "main": "index.html",
   "single-instance": false,
   "window": {
-    "toolbar": true,
+    "toolbar": false,
     "width": 1024,
     "height": 600,
     "icon": "/icons/32.png"
