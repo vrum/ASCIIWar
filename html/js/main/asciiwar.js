@@ -43,7 +43,7 @@ asciiwar.play = function(what) {
                   });
               } else {
                 console.log("Waiting...");
-                setTimeout(function() { $.ajax(this); }, 500);
+                $.ajax(this);
               }
             },
             error: function() {
