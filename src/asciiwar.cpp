@@ -2467,6 +2467,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
               c = TCOD_color_RGB(r, g, b);
               if(INSIDE_CON(x,y)) {
                 TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)light/255));
+                //TCOD_color_set_value(&c, TCOD_color_get_value(c)*0.5);
                 TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)light/255), TCOD_BKGND_SET);
               }
             }
@@ -2485,6 +2486,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            //TCOD_color_set_value(&c, TCOD_color_get_value(c)*0.5);
             TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
           x_env = un2->pos_x-halfes[SIZE(un2)-1]-1+f,
@@ -2498,6 +2500,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            //TCOD_color_set_value(&c, TCOD_color_get_value(c)*0.5);
             TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
         }
@@ -2513,6 +2516,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            //TCOD_color_set_value(&c, TCOD_color_get_value(c)*0.5);
             TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
           x_env = un2->pos_x-halfes[SIZE(un2)-1]+SIZE(un2),
@@ -2526,6 +2530,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
             int light = PL_GetLight(gi, p, x_env>>RANGE_SHIFT, y_env>>RANGE_SHIFT);
             TCOD_color_t c = TCOD_console_get_char_foreground(con, x, y);
             TCOD_console_set_char_foreground(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH));
+            //TCOD_color_set_value(&c, TCOD_color_get_value(c)*0.5);
             TCOD_console_set_char_background(con, x, y, TCOD_color_multiply_scalar(c, (float)UNIT_AO_STRENGTH), TCOD_BKGND_SET);
           }
         }
@@ -2683,7 +2688,7 @@ void CL_RenderBalls(AW_game_instance_t *gi, AW_client_ptr c) {
           TCOD_color_add(
             TCOD_color_multiply_scalar(c, (float)light/255), 
             TCOD_color_multiply_scalar(SPEC_COLOR, 1.f*spec*(float)light/255)),
-          TCOD_console_get_char_background(con, ba->pos_x-cl->viewport_x, ba->pos_y-cl->viewport_y));
+          BACKGROUND_COLOR);
       }
     }
     b = ba->next;

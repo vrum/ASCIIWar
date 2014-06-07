@@ -14,46 +14,56 @@ else
 console.log("login url ", asciiwar.url);
 
 asciiwar.play = function(what) {
-  console.log('play' + what);
-  if(asciiwar.wait_obj)
-    asciiwar.wait_obj = undefined;
-  $("#flash-login").html("<span class='success'>waiting players...</span>");
-  $.ajax({
-    type: "GET", 
-    url: asciiwar.url + "play" + what + "/" + login.username + "/" + login.token,
-    success: function(d) {
-      console.log(d);
-      if(d.success) {
-        asciiwar.wait_obj = {
-          type: "GET", 
-          url: asciiwar.url + "wait" + what + "/" + login.username + "/" + login.token,
-          success: function(d) {
-            console.log(d);
-            if(d.success) {
-              console.log("game name " + d['game-name'])
-              $("#flash-login").html("<span class='success'>Playing...</span>");
-              require('child_process').exec(
-                '"bin/asciiwar.exe" ' +
-                d['game-name'] + " " +
-                d['player-count'] + " " +
-                d['team-count']);
-            } else {
-              if(asciiwar.wait_obj)
-                $.ajax(asciiwar.wait_obj);
+  if(!asciiwar.playing) {
+    asciiwar.playing = true;
+    console.log('play' + what);
+    $("#flash-login").html("<span class='success'>waiting players...</span>");
+    $.ajax({
+      type: "GET", 
+      url: asciiwar.url + "play" + what + "/" + login.username + "/" + login.token,
+      success: function(d) {
+        console.log(d);
+        if(d.success) {
+          $.ajax({
+            type: "GET", 
+            url: asciiwar.url + "wait" + what + "/" + login.username + "/" + login.token,
+            success: function(d) {
+              console.log(d);
+              if(d.success) {
+                console.log("game name " + d['game-name'])
+                $("#flash-login").html("<span class='success'>Playing...</span>");
+                require('child_process').exec(
+                  '"bin/asciiwar.exe" ' +
+                  d['game-name'] + " " +
+                  d['player-count'] + " " +
+                  d['team-count'],
+                  function (error, stdout, stderr) {
+                    asciiwar.playing = false;
+                    $("#flash-login").html("<span class='success'></span>");
+                  });
+              } else {
+                console.log("Waiting...");
+                setTimeout(function() { $.ajax(this); }, 500);
+              }
+            },
+            error: function() {
+              asciiwar.playing = false;
+              $("#flash-login").html("<span class='failure'>cannot connect to server</span>");
             }
-          },
-          error: function() {
-            $("#flash-login").html("<span class='failure'>cannot connect to server</span>");
-          }
-        };
-        $.ajax(asciiwar.wait_obj);
-        console.log("cool");
-      } else {
-        $("#flash-login").html("<span class='failure'>Server error</span>");
+          });
+        } else {
+          asciiwar.playing = false;
+          if(d['need-login']
+          || d['need-register'])
+            $("#flash-login").html("<span class='warn'>Please log-in.</span>");
+          else
+            $("#flash-login").html("<span class='failure'>Server error.</span>");
+        }
+      },
+      error: function() {
+        asciiwar.playing = false;
+        $("#flash-login").html("<span class='failure'>cannot connect to server</span>");
       }
-    },
-    error: function() {
-      $("#flash-login").html("<span class='failure'>cannot connect to server</span>");
-    }
-  });
+    });
+  }
 }

@@ -41,20 +41,21 @@
 (require '[crypto.password.pbkdf2 :as password])
 ;
 ;
-(def release? true)
+(defonce release? true)
 ;
 ;
-(def db-path "db/")
-(def user-path (str db-path "user/"))
+(defonce db-path "db/")
+(defonce user-path (str db-path "user/"))
 ;
 ;
-(def game-server (atom nil))
-(def waiting_players_1v0 (atom (list)))
-(def matched_players_1v0 (atom (list)))
-(def matcher_1v0 (agent nil))
-(def waiting_players_1v1 (atom (list)))
-(def matched_players_1v1 (atom (list)))
-(def matcher_1v1 (agent nil))
+(defonce game-server (atom nil))
+(defonce sessions (atom {}))
+(defonce waiting_players_1v0 (atom (list)))
+(defonce matched_players_1v0 (atom (list)))
+(defonce matcher_1v0 (agent nil))
+(defonce waiting_players_1v1 (atom (list)))
+(defonce matched_players_1v1 (atom (list)))
+(defonce matcher_1v1 (agent nil))
 ;
 ;
 (defn user-exists? [username]
@@ -73,47 +74,59 @@
   (password/check password ((get-user username) :password)))
 ;
 ;
-(defn user-session-ok? [session username token]
-  (when (not (nil? (session :token)))
-    (= token (.toString (session :token)))))
+(defn user-session-ok? [username token]
+  (when (not (nil? (@sessions username)))
+    (= token (.toString (@sessions username)))))
+;
+;
+(defn clear-user-game [username]
+  (swap! waiting_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+  (swap! waiting_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
+  (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
+  (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l))))
 ;
 ;
 (defroutes handler
-  (GET "/register/:username/:password" {{username :username password :password} :params session :session}
+  (GET "/register/:username/:password" {{username :username password :password} :params}
     (if (user-exists? username)
       (response {:already-exist? true})
       (let [user-db {:username username :password (password/encrypt password)}
             f       (str user-path username)
-            token   (java.util.UUID/randomUUID)
-            session (assoc session :token token)]
+            token   (java.util.UUID/randomUUID)]
+        (swap! sessions (fn [x] (assoc x username token)))
         (spit f (pr-str user-db))
-        (-> (response {:success true :token token})
-            (assoc :session session)))))
-  (GET "/login/:username/:password" {{username :username password :password} :params session :session}
+        (response {:success true :token token}))))
+  (GET "/login/:username/:password" {{username :username password :password} :params}
     (if (user-exists? username)
       (if (user-ok? username password)
-        (let [token   (java.util.UUID/randomUUID)
-              session (assoc session :token token)]
-          (println (str username " is logged."))
-          (-> (response {:success true :token token})
-              (assoc :session session)))
+        (let [token   (java.util.UUID/randomUUID)]
+          (println (str username " is logged in."))
+          (swap! sessions (fn [x] (assoc x username token)))
+          (response {:success true :token token}))
         (response {:success false}))
       (response {:success false})))
-  (GET "/play1v0/:username/:token" {{username :username token :token} :params session :session}
+  (GET "/logoff/:username/:token" {{username :username token :token} :params}
     (if (user-exists? username)
-      (if (user-session-ok? session username token)
+      (if (user-session-ok? username token)
         (do
-          (swap! waiting_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
-          (swap! waiting_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
-          (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
-          (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (println (str username " is logging off."))
+          (clear-user-game username)
+          (swap! sessions (fn [x] (dissoc x username)))
+          (response {:success true}))
+        (response {:success false}))
+      (response {:success false})))
+  (GET "/play1v0/:username/:token" {{username :username token :token} :params}
+    (if (user-exists? username)
+      (if (user-session-ok? username token)
+        (do
+          (clear-user-game username)
           (swap! waiting_players_1v0 (fn [x] (cons {:username username :token token} x)))
           (response {:success true}))
         (response {:need-login true}))
       (response {:need-register true})))
-  (GET "/wait1v0/:username/:token" {{username :username token :token} :params session :session}
+  (GET "/wait1v0/:username/:token" {{username :username token :token} :params}
     (if (user-exists? username)
-      (if (user-session-ok? session username token)
+      (if (user-session-ok? username token)
         (let [matched-p (filter #(and (= username (%1 :username)) 
                                       (= token (%1 :token))) 
                                  @matched_players_1v0)]
@@ -130,21 +143,18 @@
             (response {:success false})))
         (response {:need-login true}))
       (response {:need-register true})))
-  (GET "/play1v1/:username/:token" {{username :username token :token} :params session :session}
+  (GET "/play1v1/:username/:token" {{username :username token :token} :params}
     (if (user-exists? username)
-      (if (user-session-ok? session username token)
+      (if (user-session-ok? username token)
         (do
-          (swap! waiting_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
-          (swap! waiting_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
-          (swap! matched_players_1v0 (fn [l] (filter #(not= username (%1 :username)) l)))
-          (swap! matched_players_1v1 (fn [l] (filter #(not= username (%1 :username)) l)))
+          (clear-user-game username)
           (swap! waiting_players_1v1 (fn [x] (cons {:username username :token token} x)))
           (response {:success true}))
         (response {:need-login true}))
       (response {:need-register true})))
-  (GET "/wait1v1/:username/:token" {{username :username token :token} :params session :session}
+  (GET "/wait1v1/:username/:token" {{username :username token :token} :params}
     (if (user-exists? username)
-      (if (user-session-ok? session username token)
+      (if (user-session-ok? username token)
         (let [matched-p (filter #(and (= username (%1 :username)) 
                                       (= token (%1 :token))) 
                                  @matched_players_1v1)]
@@ -167,8 +177,6 @@
   (-> #'handler
       (wrap-stacktrace)
       (wrap-json-response)
-      (wrap-stacktrace)
-      (wrap-session {:cookie-attrs {:secure release? :max-age (* 3600 24)}})
       (wrap-stacktrace)))
 ;
 ;
@@ -192,8 +200,6 @@
 (defn match_them1v0 [_]
   (loop []
     (when (not (.isStopped @server))
-      ; match players
-      ; their are removed from waiting_players_1v0
       (swap! 
         waiting_players_1v0 
         (fn [ps]
@@ -213,8 +219,6 @@
 (defn match_them1v1 [_]
   (loop []
     (when (not (.isStopped @server))
-      ; match players
-      ; their are removed from waiting_players_1v1
       (swap! 
         waiting_players_1v1 
         (fn [ps]
@@ -231,7 +235,7 @@
                                :game-name    game-name
                                :team-count   2 
                                :player-count (+ 1 1))]
-                (println (str "matching " (new-p1 :username) " with " (new-p2 :username) "."))
+                (println (str "Matching " (new-p1 :username) " with " (new-p2 :username) "."))
                 (swap! matched_players_1v1 (fn [x] (cons new-p1 (cons new-p2 x))))
                 (recur (drop 2 l)))
               l))))
@@ -251,7 +255,14 @@
 (defn stop []
   (when (not (nil? @game-server))
     (.destroy @game-server))
-  (.stop @server))
+  (.stop @server)
+  (swap! game-server (fn [_] nil))
+  (swap! waiting_players_1v0 (fn [_] (list)))
+  (swap! matched_players_1v0 (fn [_] (list)))
+  (send matcher_1v0 (fn [_] nil))
+  (swap! waiting_players_1v1 (fn [_] (list)))
+  (swap! matched_players_1v1 (fn [_] (list)))
+  (send matcher_1v1 (fn [_] nil)))
 ;
 ;
 (defn -main [& args])

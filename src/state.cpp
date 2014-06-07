@@ -51,8 +51,11 @@ if(GI_InState(gi, AW_state_game)) {
 } else {
   /* main menu */
   if(GI_InState(gi, AW_state_main_menu)) {
-    LISTEN_MASTER_SERVER
-    GI_CheckConnectionToMasterServer(gi, &e, AW_state_main_menu);
+    if(gi->host) {
+      LISTEN_MASTER_SERVER
+      GI_CheckConnectionToMasterServer(gi, &e, AW_state_main_menu);
+    } else 
+      GI_ConnectToMasterServer(gi);
     if(BTN_IsClicked(gi, &gi->multi_btns.btns[3])) /* quit */
       AW_Quit();
   }

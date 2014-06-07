@@ -61,10 +61,15 @@ int main(int _argc, char **_argv) {
   	TCOD_console_credits();
   #endif
 
-  assert(_argc >= 4);
-  game_desc.game_name             = (char*)argv[1];
-  game_desc.player_count_per_team = atoi((char*)argv[2]);
-  game_desc.team_count            = atoi((char*)argv[3]);
+  if(_argc >= 4) {
+    game_desc.game_name             = (char*)argv[1];
+    game_desc.player_count_per_team = atoi((char*)argv[2]);
+    game_desc.team_count            = atoi((char*)argv[3]);
+  } else {
+    game_desc.game_name             = "bahla";
+    game_desc.player_count_per_team = 1+1;
+    game_desc.team_count            = 2;
+  }
 
   // client game instance
 	GI_Init(&client_gi, argc, argv);

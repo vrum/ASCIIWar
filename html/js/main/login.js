@@ -63,6 +63,7 @@ login.login = function() {
   console.log("login");
   var username = $("#login-username").val();
   var password = $("#login-password").val();
+  console.log("Login as " + username);
   if(login.check(username, password)) {
     $("#flash-login").html("<span class='success'>Login, please wait...</span>");
     $.ajax({
@@ -88,6 +89,26 @@ login.login = function() {
 }
 
 login.logoff = function() {
-  alert("yop");
   console.log("logoff");
+  if(login.username && login.token) {
+    $.ajax({
+      type: "GET", 
+      url: asciiwar.url + "logoff/" + login.username + "/" + login.token,
+      success: function(d) {
+        console.log(d);
+        if(d.success) {
+          console.log("Successfully logged off.");
+          $("#flash-login").html("<span class='success'>Successfully logged off</span>");
+        } else {
+          console.log("Fail to log off.");
+          $("#flash-login").html("<span class='failure'>Fail to log off</span>");
+        }
+      },
+      error: function(d) {
+        $("#flash-login").html("<span class='failure'>cannot connect to server</span>");
+      }
+    });
+    login.username = login.token = undefined;
+    asciiwar.playing = false;
+  }
 }
