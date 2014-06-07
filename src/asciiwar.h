@@ -81,7 +81,7 @@ typedef string str;
 #define RELEASE 										false
 #define REPLAY 											false
 #define RECORD 											false
-#define FULLSCREEN    							true
+#define FULLSCREEN    							false
 #define THREADS											true
 
 #define NORMAL_TIME_STEP 						10

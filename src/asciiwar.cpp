@@ -4847,7 +4847,7 @@ bool PL_MoveUnit(AW_game_instance_t *gi, AW_player_ptr p, AW_unit_ptr u) {
     }
   }
   /* done? */
-  return UO_GetFront(gi, u) != uo ||
+  return UO_GetFront(gi, u) != uo || un->path_len == 0 ||
       !(((px == un->pos_x || py == un->pos_y) && un->move >= 1000)
       || ((px != un->pos_x && py != un->pos_y) && un->move >= 1410));
 }
