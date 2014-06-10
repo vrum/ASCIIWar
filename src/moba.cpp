@@ -1054,6 +1054,10 @@ void MOBA_DeathCB(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr 
   /* miscs */
   switch(un->unit_type) {
     case AW_unit_type_C: {
+        AW_build_explosion_ptr b = BE_New(gi);;
+        AW_build_explosion_t *be = &build_explosion(b);
+        be->pos_x = un->pos_x;
+        be->pos_y = un->pos_y;
         AW_player_ptr p2 = gi->player_head;
         while(p2 != AW_null) {
           AW_player_t *pl2 = &player(p2);
@@ -1072,8 +1076,22 @@ void MOBA_DeathCB(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr 
           MOBS_Free((AW_mobs_ptr)unit(u).user_data);
       } break;
     case AW_unit_type_T: {
+        AW_build_explosion_ptr b = BE_New(gi);;
+        AW_build_explosion_t *be = &build_explosion(b);
+        be->pos_x = un->pos_x;
+        be->pos_y = un->pos_y;
       } break;
     case AW_unit_type_G: {
+        AW_build_explosion_ptr b = BE_New(gi);;
+        AW_build_explosion_t *be = &build_explosion(b);
+        be->pos_x = un->pos_x;
+        be->pos_y = un->pos_y;
+      } break;
+    case AW_unit_type_L: {
+        AW_build_explosion_ptr b = BE_New(gi);;
+        AW_build_explosion_t *be = &build_explosion(b);
+        be->pos_x = un->pos_x;
+        be->pos_y = un->pos_y;
       } break;
     default: {
         /* start the resurection */
@@ -1668,14 +1686,14 @@ AW_ascii_t              little_g[1]   = {'g'},
                                         0x40 + 0x104, 0x41 + 0x104, 0x42 + 0x104, 0x43 + 0x104, 0x44 + 0x104, 0x45 + 0x104,
                                         0x50 + 0x104, 0x51 + 0x104, 0x52 + 0x104, 0x53 + 0x104, 0x54 + 0x104, 0x55 + 0x104}; 
 AW_unit_class_t         unit_dic[MAX_UNIT_TYPE] =
- {{50,    10, 10000, 10, 1,   3,    50,  1, 40,   8*8,   5*5,  true, little_g},
-  {100,   10, 10000, 10, 1,   3,    50,  2, 40,   8*8,   5*5,  true, big_O},
-  {25,    10, 10000, 8, 1,   3,    50,  2, 40,   8*8,   3*3,  true, little_m},
-  {800,   10, 10000, 0, 2,  10,  1500,  5, 60, 25*25, 25*25, false, big_T},
-  {1500,  10, 10000, 0, 1,   0,  3500,  6, 80,   8*8,    -1, false, big_L},
-  {1500,  10, 10000, 0, 1,   0,  3500,  4, 80,   8*8,    -1, false, big_G},
-  {5000,  10, 10000, 0, 1,   0,  2250,  8, 80,   8*8,    -1, false, big_C}};
-
+ {{50,    10, 10000, 10, 1,  3,    50,    0, 1, 40,   8*8,   5*5,  true, little_g},
+  {100,   10, 10000, 10, 1,  3,    50,  100, 2, 40,   8*8,   5*5,  true, big_O},
+  {25,    10, 10000, 8, 1,   3,    50,    0, 2, 40,   8*8,   3*3,  true, little_m},
+  {800,   10, 10000, 0, 2,  10,  1500,    0, 5, 60, 25*25, 25*25, false, big_T},
+  {1500,  10, 10000, 0, 1,   0,  3500,    0, 6, 80,   8*8,    -1, false, big_L},
+  {1500,  10, 10000, 0, 1,   0,  3500,    0, 4, 80,   8*8,    -1, false, big_G},
+  {5000,  10, 10000, 0, 1,   0,  2250,    0, 8, 80,   8*8,    -1, false, big_C}};
+  
 
 /*
  * end of file

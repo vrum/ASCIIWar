@@ -683,6 +683,340 @@ void SO_Update(AW_game_instance_t *gi, AW_client_ptr c) {
 }
 
 /*
+ * fluids
+ */
+
+void FL_Init(AW_game_instance_t *gi, int argc, char** argv) {
+  // create fluids.
+  for(int i = 0; i < MAX_FLUID; i++) {
+    if(i != MAX_FLUID-1)
+      fluid(i).fnext = i+1;
+    else
+      fluid(i).fnext = AW_null;
+  }
+  gi->free_fluid_head = 0;
+  gi->fluid_head      = AW_null;
+  trace("fluids initiated.");
+}
+
+AW_fluid_ptr FL_New(AW_game_instance_t *gi) {
+  if(gi->free_fluid_head != AW_null) {
+    AW_fluid_ptr r            = gi->free_fluid_head;
+    gi->free_fluid_head       = fluid(gi->free_fluid_head).fnext;
+    fluid(r).counter          = FLUID_MAX_COUNTER;
+    fluid(r).span             = FLUID_SPAN;
+    fluid(r).handle           = null;
+    fluid(r).diffusion        = FLUID_DIFFUSION;
+    fluid(r).color            = TCOD_color_RGB(150, 175, 255);
+    DO_TIMES(FLUID_BOX_SIZE_SQUARE) {
+      fluid(r).fluid_s[f]        = 0;
+      fluid(r).fluid_density[f]  = 0;
+      fluid(r).fluid_Vx[f]       = 0;
+      fluid(r).fluid_Vy[f]       = 0;
+      fluid(r).fluid_Vx0[f]      = 0;
+      fluid(r).fluid_Vy0[f]      = 0;
+    }
+    fluid(r).previous         = AW_null;
+    fluid(r).next             = gi->fluid_head;
+    if(gi->fluid_head != AW_null)
+      fluid(gi->fluid_head).previous = r;
+    gi->fluid_head = r;
+    return r;
+  }
+  trace("No more fluid left.");
+  return AW_null;
+}
+
+void FL_Free(AW_game_instance_t *gi, AW_fluid_ptr l) {
+  if(fluid(l).handle) 
+    CloseHandle(fluid(l).handle);
+  if(gi->fluid_head == l)
+    gi->fluid_head = fluid(l).next;
+  if(fluid(l).previous != AW_null)
+    fluid(fluid(l).previous).next = fluid(l).next;
+  if(fluid(l).next != AW_null)
+    fluid(fluid(l).next).previous = fluid(l).previous;
+  fluid(l).fnext = gi->free_fluid_head;
+  gi->free_fluid_head = l;
+}
+
+void FL_FreeAll(AW_game_instance_t *gi) {
+  while(gi->fluid_head != AW_null)
+    FL_Free(gi, gi->fluid_head);
+  trace("fluids freed.");
+}
+
+void FL_Step(AW_game_instance_t *gi, AW_fluid_ptr f) {
+  AW_fluid_t *fl = &fluid(f);
+  FL_Diffuse(gi, 1, fl->fluid_Vx0, fl->fluid_Vx, FLUID_VISCOSITY, 1);
+  FL_Diffuse(gi, 2, fl->fluid_Vy0, fl->fluid_Vy, FLUID_VISCOSITY, 1);
+  
+  FL_Project(gi, fl->fluid_Vx0, fl->fluid_Vy0, fl->fluid_Vx, fl->fluid_Vy, 1);
+  
+  FL_Advect(gi, 1, fl->fluid_Vx, fl->fluid_Vx0, fl->fluid_Vx0, fl->fluid_Vy0);
+  FL_Advect(gi, 2, fl->fluid_Vy, fl->fluid_Vy0, fl->fluid_Vx0, fl->fluid_Vy0);
+  
+  FL_Project(gi, fl->fluid_Vx, fl->fluid_Vy, fl->fluid_Vx0, fl->fluid_Vy0, 1);
+  
+  FL_Diffuse(gi, 0, fl->fluid_s, fl->fluid_density, fl->diffusion, 1);
+  FL_Advect(gi, 0, fl->fluid_density, fl->fluid_s, fl->fluid_Vx, fl->fluid_Vy);
+}
+
+bool FL_Update(AW_game_instance_t *gi, AW_fluid_ptr ff) {
+  AW_fluid_t *fl = &fluid(ff);
+#if THREADS
+  if(!fl->handle
+  || WaitForSingleObject(fl->handle, 0) 
+  == WAIT_OBJECT_0) {
+    if(fl->handle)
+      CloseHandle(fl->handle);
+    DO_TIMES(FLUID_BOX_SIZE_SQUARE)
+      fl->fluid_final_density[f] = fl->fluid_density[f];
+    if(fl->span > 0) {
+      fl->worker_param.gi = gi;
+      fl->worker_param.f = ff;
+      fl->worker_param.game_time_step = gi->game_time_step;
+      fl->handle = CreateThread(null, 0, FL_WorkerFun, (void*)&fl->worker_param, 0, &fl->id); 
+      assert(fl->handle);
+      return false;
+    } else
+      return true;
+  }
+  return false;
+#endif
+  return true;
+}
+
+DWORD WINAPI FL_WorkerFun(void *param) {
+  AW_worker_fluid_param_t *params = (AW_worker_fluid_param_t*)param;
+  AW_game_instance_t *gi  = params->gi;
+  AW_fluid_ptr f          = params->f;
+  AW_fluid_t *fl          = &fluid(f);
+  fl->counter--;
+  fl->span -= params->game_time_step;
+  if(fl->counter > 0) {
+    short socle = 10;
+    unsigned int seed = AW_GetTime();
+    for(int j = -socle/2; j < socle/2; j++)
+      for(int i = -socle/2; i < socle/2; i++) {
+        int dist = i*i + j*j;
+        if(dist < (socle/2)*(socle/2)) {
+          short env_x = fl->pos_x+i,
+                env_y = fl->pos_y+j;
+          if(INSIDE_FLUID(env_x, env_y)) {
+            short fl_x = env_x - (fl->pos_x - FLUID_BOX_SIZE/2),
+                  fl_y = env_y - (fl->pos_y - FLUID_BOX_SIZE/2);
+            if(INSIDE_FLUID2(fl_x, fl_y)) {
+              AT_FL(fluid_density, fl_x, fl_y) += 0.3;
+              float dis = pow(dist, 2);
+              dis = dis == 0 ? 1 : dis;
+              float ii = i;
+              float jj = j;
+              AT_FL(fluid_Vx, fl_x, fl_y) += (float)ii*(16 + (AW_Rand(&seed)&15))*3*pow((FLUID_MAX_COUNTER-fl->counter)*0.1, 1)/dis;
+              AT_FL(fluid_Vy, fl_x, fl_y) += (float)jj*(16 + (AW_Rand(&seed)&15))*3*pow((FLUID_MAX_COUNTER-fl->counter)*0.1, 1)/dis;
+            }
+          }
+        } 
+      }
+  }
+  FL_Step(gi, f);
+}
+
+void FL_SetBnd(AW_game_instance_t *gi, int b, float *x) {
+ for(int i = 1; i < FLUID_BOX_SIZE - 1; i++) {
+    AT_FL2(x, i, 0)                 = b == 2 ? -AT_FL2(x, i, 1) : AT_FL2(x, i, 1);
+    AT_FL2(x, i, FLUID_BOX_SIZE-1)  = b == 2 ? -AT_FL2(x, i, FLUID_BOX_SIZE-2) : AT_FL2(x, i, FLUID_BOX_SIZE-2);
+  }
+  for(int j = 1; j < FLUID_BOX_SIZE - 1; j++) {
+    AT_FL2(x, 0  , j)           = b == 1 ? -AT_FL2(x, 1, j) : AT_FL2(x, 1, j);
+    AT_FL2(x, FLUID_BOX_SIZE-1, j)  = b == 1 ? -AT_FL2(x, FLUID_BOX_SIZE-2, j) : AT_FL2(x, FLUID_BOX_SIZE-2, j);
+  }
+  AT_FL2(x, 0, 0)                         = 0.5f * (AT_FL2(x, 1, 0)                       + AT_FL2(x, 0, 1));
+  AT_FL2(x, 0, FLUID_BOX_SIZE-1)              = 0.5f * (AT_FL2(x, 1, FLUID_BOX_SIZE-1)            + AT_FL2(x, 0, FLUID_BOX_SIZE-2));
+  AT_FL2(x, 0, 0)                         = 0.5f * (AT_FL2(x, 1, 0)                       + AT_FL2(x, 0, 1));
+  AT_FL2(x, 0, FLUID_BOX_SIZE-1)              = 0.5f * (AT_FL2(x, 1, FLUID_BOX_SIZE-1)            + AT_FL2(x, 0, FLUID_BOX_SIZE-2));
+  AT_FL2(x, FLUID_BOX_SIZE-1, 0)              = 0.5f * (AT_FL2(x, FLUID_BOX_SIZE-2, 0)            + AT_FL2(x, FLUID_BOX_SIZE-1, 1));
+  AT_FL2(x, FLUID_BOX_SIZE-1, FLUID_BOX_SIZE-1)   = 0.5f * (AT_FL2(x, FLUID_BOX_SIZE-2, FLUID_BOX_SIZE-1) + AT_FL2(x, FLUID_BOX_SIZE-1, FLUID_BOX_SIZE-2));
+  AT_FL2(x, FLUID_BOX_SIZE-1, 0)              = 0.5f * (AT_FL2(x, FLUID_BOX_SIZE-2, 0)            + AT_FL2(x, FLUID_BOX_SIZE-1, 1));
+  AT_FL2(x, FLUID_BOX_SIZE-1, FLUID_BOX_SIZE-1)   = 0.5f * (AT_FL2(x, FLUID_BOX_SIZE-2, FLUID_BOX_SIZE-1) + AT_FL2(x, FLUID_BOX_SIZE-1, FLUID_BOX_SIZE-2));
+}
+
+void FL_LinSolve(AW_game_instance_t *gi, int b, float *x, float *x0, float a, float c, int iter) {
+  float cRecip = 1.0 / c;
+  float *xx   = x,
+        *xx0  = x0;
+  for (int k = 0; k < iter; k++) {
+    for (int j = 1; j < FLUID_BOX_SIZE - 1; j++)
+      for (int i = 1; i < FLUID_BOX_SIZE - 1; i++) {
+        AT_FL2(xx, i, j) = 
+          (AT_FL2(xx0, i, j) + 
+          a * 
+          (AT_FL2(xx0, i+1, j+0) +
+           AT_FL2(xx0, i-1, j+0) +
+           AT_FL2(xx0, i+0, j+1) +
+           AT_FL2(xx0, i+0, j-1))) * 
+          cRecip;
+      }
+    FL_SetBnd(gi, b, xx);
+    SWAP(float*, xx, xx0);
+  }
+}
+
+void FL_Diffuse(AW_game_instance_t *gi, int b, float *x, float *x0, float diff, int iter) {
+  assert(gi->game_time_step != 0);
+  float a = 0.015 * diff * (FLUID_BOX_SIZE - 2) * (FLUID_BOX_SIZE - 2);
+  FL_LinSolve(gi, b, x, x0, a, 1 + 6 * a, iter);
+}
+
+void FL_Project(AW_game_instance_t *gi, float *velocX, float *velocY, float *p, float *div, int iter) {
+  for (int j = 1; j < FLUID_BOX_SIZE - 1; j++) 
+    for (int i = 1; i < FLUID_BOX_SIZE - 1; i++) {
+      AT_FL2(div, i, j) = -0.5f*(
+              +AT_FL2(velocX, i+1, j)
+              -AT_FL2(velocX, i-1, j)
+              +AT_FL2(velocY, i, j+1)
+              -AT_FL2(velocY, i, j-1)
+          )/FLUID_BOX_SIZE;
+      AT_FL2(p, i, j) = 0;
+    }
+  FL_SetBnd(gi, 0, div); 
+  FL_SetBnd(gi, 0, p);
+  FL_LinSolve(gi, 0, p, div, 1, 6, iter);
+  
+  for (int j = 1; j < FLUID_BOX_SIZE - 1; j++) 
+    for (int i = 1; i < FLUID_BOX_SIZE - 1; i++) {
+      AT_FL2(velocX, i, j) -= 0.5f * (AT_FL2(p, i+1, j) - AT_FL2(p, i-1, j)) * FLUID_BOX_SIZE;
+      AT_FL2(velocY, i, j) -= 0.5f * (AT_FL2(p, i, j+1) - AT_FL2(p, i, j-1)) * FLUID_BOX_SIZE;
+    }
+  FL_SetBnd(gi, 1, velocX);
+  FL_SetBnd(gi, 2, velocY);
+}
+
+void FL_Advect(AW_game_instance_t *gi, int b, float *d, float *d0,  float *velocX, float *velocY) {
+  float i0, i1, j0, j1, k0, k1;
+  
+  float dtx = 0.015 * (FLUID_BOX_SIZE - 2);
+  float dty = 0.015 * (FLUID_BOX_SIZE - 2);
+  
+  float s0, s1, t0, t1, u0, u1;
+  float tmp1, tmp2, x, y;
+  
+  float Nfloat = FLUID_BOX_SIZE-2;
+  float ifloat, jfloat;
+  int i, j;
+  
+  for(j = 1, jfloat = 1; j < FLUID_BOX_SIZE - 1; j++, jfloat++)
+    for(i = 1, ifloat = 1; i < FLUID_BOX_SIZE - 1; i++, ifloat++) {
+      tmp1 = dtx * AT_FL2(velocX, i, j);
+      tmp2 = dty * AT_FL2(velocY, i, j);
+      x    = ifloat - tmp1; 
+      y    = jfloat - tmp2;
+      if(x < 0.5f) x = 0.5f; 
+      if(x > Nfloat + 0.5f) x = Nfloat + 0.5f; 
+      i0 = floorf(x); 
+      i1 = i0 + 1.0f;
+      if(y < 0.5f) y = 0.5f; 
+      if(y > Nfloat + 0.5f) y = Nfloat + 0.5f; 
+      j0 = floorf(y);
+      j1 = j0 + 1.0f; 
+      s1 = x - i0; 
+      s0 = 1.0f - s1; 
+      t1 = y - j0; 
+      t0 = 1.0f - t1;
+      int i0i = i0;
+      int i1i = i1;
+      int j0i = j0;
+      int j1i = j1;
+      AT_FL2(d, i, j) = 
+        s0 * (t0 * AT_FL2(d0, i0i, j0i) + t1 * AT_FL2(d0, i0i, j1i)) +
+        s1 * (t0 * AT_FL2(d0, i1i, j0i) + t1 * AT_FL2(d0, i1i, j1i));
+    }
+  FL_SetBnd(gi, b, d);
+}
+
+/*
+ * build_explosions
+ */
+
+void BE_Init(AW_game_instance_t *gi, int argc, char** argv) {
+  // create build_explosions.
+  for(int i = 0; i < MAX_BUILD_EXPLOSION; i++) {
+    if(i != MAX_BUILD_EXPLOSION-1)
+      build_explosion(i).fnext = i+1;
+    else
+      build_explosion(i).fnext = AW_null;
+  }
+  gi->free_build_explosion_head = 0;
+  gi->build_explosion_head      = AW_null;
+  trace("build_explosions initiated.");
+}
+
+AW_build_explosion_ptr BE_New(AW_game_instance_t *gi) {
+  if(gi->free_build_explosion_head != AW_null) {
+    AW_build_explosion_ptr r            = gi->free_build_explosion_head;
+    gi->free_build_explosion_head       = build_explosion(gi->free_build_explosion_head).fnext;
+    build_explosion(r).previous         = AW_null;
+    build_explosion(r).next             = gi->build_explosion_head;
+    build_explosion(r).span             = BUILD_EXPLOSION_SPAN;
+    build_explosion(r).state            = 0;
+    if(gi->build_explosion_head != AW_null)
+      build_explosion(gi->build_explosion_head).previous = r;
+    gi->build_explosion_head = r;
+    return r;
+  }
+  trace("No more build_explosion left.");
+  return AW_null;
+}
+
+void BE_Free(AW_game_instance_t *gi, AW_build_explosion_ptr l) {
+  if(gi->build_explosion_head == l)
+    gi->build_explosion_head = build_explosion(l).next;
+  if(build_explosion(l).previous != AW_null)
+    build_explosion(build_explosion(l).previous).next = build_explosion(l).next;
+  if(build_explosion(l).next != AW_null)
+    build_explosion(build_explosion(l).next).previous = build_explosion(l).previous;
+  build_explosion(l).fnext = gi->free_build_explosion_head;
+  gi->free_build_explosion_head = l;
+}
+
+void BE_FreeAll(AW_game_instance_t *gi) {
+  while(gi->build_explosion_head != AW_null)
+    BE_Free(gi, gi->build_explosion_head);
+  trace("build_explosions freed.");
+}
+
+bool BE_Update(AW_game_instance_t *gi, AW_build_explosion_ptr b) {
+  AW_build_explosion_t *be = &build_explosion(b);
+  if(be->span == BUILD_EXPLOSION_SPAN) {
+    AW_fluid_ptr f = FL_New(gi);
+    AW_fluid_t *fl = &fluid(f);
+    fl->pos_x = be->pos_x;
+    fl->pos_y = be->pos_y;
+    fl->diffusion = FLUID_DIFFUSION*5;
+    be->state++;
+  } else 
+  if(be->span <= 2*BUILD_EXPLOSION_SPAN/3
+  && be->state == 1) {
+    AW_fluid_ptr f = FL_New(gi);
+    AW_fluid_t *fl = &fluid(f);
+    fl->pos_x = be->pos_x;
+    fl->pos_y = be->pos_y;
+    fl->diffusion = FLUID_DIFFUSION*5;
+    be->state++;
+  } else 
+  if(be->span <= BUILD_EXPLOSION_SPAN/3
+  && be->state == 2) {
+    AW_fluid_ptr f = FL_New(gi);
+    AW_fluid_t *fl = &fluid(f);
+    fl->pos_x = be->pos_x;
+    fl->pos_y = be->pos_y;
+    be->state++;
+  }
+  be->span -= gi->game_time_step;
+  return be->span <= 0;
+}
+
+/*
  * build order
  */
 
@@ -1664,6 +1998,7 @@ void CL_Update(AW_game_instance_t *gi, AW_client_ptr c) {
     CL_RenderFloatingText(gi, c);
     CL_RenderBloom(gi, c);
     CL_RenderBalls(gi, c);
+    CL_RenderFluid(gi, c);
     CL_RenderSelection(gi, c);
     CL_RenderCursor(gi, c);
     CL_RenderWinLose(gi, c);
@@ -1720,6 +2055,7 @@ void CL_EndOfTurn(AW_game_instance_t *gi, AW_client_ptr c) {
   CL_Seed(gi, c);
 }
 
+int bob = 0;
 void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
   AW_client_t *cl = &client(c);
   AW_player_ptr cl_p = GI_GetPlayerPtr(gi, cl->player_id);
@@ -1953,6 +2289,18 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
     }
     if(GI_IsKeyReleased(gi, TCODK_TAB))
       CL_SelectNextSubGroup(gi, c);
+    if(GI_IsKeyReleased(gi, TCODK_ENTER)) {
+      AW_build_explosion_ptr b = BE_New(gi);
+      AW_build_explosion_t *be = &build_explosion(b);
+      be->pos_x = cl->viewport_x+gi->mouse.cx;
+      be->pos_y = cl->viewport_y+gi->mouse.cy;
+    }
+    if(GI_IsKeyReleased(gi, TCODK_SPACE)) {
+      AW_fluid_ptr f = FL_New(gi);
+      AW_fluid_t *fl = &fluid(f);
+      fl->pos_x = cl->viewport_x+gi->mouse.cx;
+      fl->pos_y = cl->viewport_y+gi->mouse.cy;
+    }
   } else {
     if(cl->window_opened
     && gi->lbtn_down
@@ -2402,6 +2750,8 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
               spec = 0;
             TCOD_color_t cp = c;
             TCOD_color_set_value(&cp, TCOD_color_get_value(c)*0.4);
+            // invisibility
+            //cp = TCOD_console_get_char_background(con, un2->pos_x+i-cl->viewport_x, un2->pos_y+j-cl->viewport_y);
             TCOD_console_put_char_ex(
               con, 
               un2->pos_x+i-cl->viewport_x, 
@@ -2692,6 +3042,51 @@ void CL_RenderBalls(AW_game_instance_t *gi, AW_client_ptr c) {
       }
     }
     b = ba->next;
+  }
+}
+
+void CL_RenderFluid(AW_game_instance_t *gi, AW_client_ptr c) {
+  static int mouse_x = 0, mouse_y = 0;
+  AW_client_t *cl = &client(c);
+  AW_player_ptr p = GI_GetPlayerPtr(gi, cl->player_id);
+  AW_fluid_ptr f = gi->fluid_head;
+  while(f != AW_null) {
+    AW_fluid_t *fl = &fluid(f);
+    FOR_RECT(1, FLUID_BOX_SIZE-2, 1, FLUID_BOX_SIZE-2) {
+      int x = i+(fl->pos_x-FLUID_BOX_SIZE/2)-cl->viewport_x,
+          y = j+(fl->pos_y-FLUID_BOX_SIZE/2)-cl->viewport_y;
+      if(INSIDE_CON(x, y)) {
+        float d0 = AT_FL(fluid_final_density, i, j),
+              d1 = AT_FL(fluid_final_density, i-1, j+0),
+              d2 = AT_FL(fluid_final_density, i+1, j+0),
+              d3 = AT_FL(fluid_final_density, i+0, j-1),
+              d4 = AT_FL(fluid_final_density, i+0, j+1),
+              d = MAX(d0, MAX(d1, MAX(d2, MAX(d3, d4))));
+        AT_FL(fluid_max_density, i, j) = d;
+      }
+    }
+    FOR_RECT(1, FLUID_BOX_SIZE-2, 1, FLUID_BOX_SIZE-2) {
+      int env_x = i + (fl->pos_x-FLUID_BOX_SIZE/2),
+          env_y = j + (fl->pos_y-FLUID_BOX_SIZE/2),
+          x     = env_x-cl->viewport_x,
+          y     = env_y-cl->viewport_y;
+      if(INSIDE_CON(x, y)) {
+        float d0 = AT_FL(fluid_max_density, i, j),
+              d1 = AT_FL(fluid_max_density, i-1, j+0),
+              d2 = AT_FL(fluid_max_density, i+1, j+0),
+              d3 = AT_FL(fluid_max_density, i+0, j-1),
+              d4 = AT_FL(fluid_max_density, i+0, j+1),
+              d = MIN(1, (d0+d1+d2+d3+d4)*0.2);
+        TCOD_color_t c = TCOD_color_multiply_scalar(fl->color, d),
+                     f = TCOD_console_get_char_foreground(con, x, y),
+                     b = TCOD_console_get_char_background(con, x, y);
+        int light = PL_GetLight(gi, p, env_x>>RANGE_SHIFT, env_y>>RANGE_SHIFT);
+        c = TCOD_color_multiply_scalar(c, (float)light/255);
+        TCOD_console_set_char_foreground(con, x, y, TCOD_color_lerp(f, c, d));
+        TCOD_console_set_char_background(con, x, y, TCOD_color_lerp(b, c, d), TCOD_BKGND_SET);
+      }
+    }
+    f = fl->next;
   }
 }
 
@@ -3268,41 +3663,45 @@ void CL_PostRender(void *sdl_surface) {
       while(u != AW_null) {
         AW_unit_t *un = &unit(u);
         if(PL_IsInFov(gi, local_p, u)) {
-          short r = un->hp * (SCREEN_UNIT_SIZE(un)-4) / MAX_HP(un);
+          short r   = un->hp * (SCREEN_UNIT_SIZE(un)-4) / MAX_HP(un),
+                r2  = un->mana * (SCREEN_UNIT_SIZE(un)-4) / (MAX_MANA(un) == 0 ? 1 : MAX_MANA(un));
           int idx[]           = { 0, ((SCREEN_UNIT_SIZE(un)-4)/3)*2, (SCREEN_UNIT_SIZE(un)-4) };
           TCOD_color_t cols[] = {TCOD_red, TCOD_orange, TCOD_green};
           TCOD_color_t map[SCREEN_UNIT_SIZE(un)-4+1];
           TCOD_color_gen_map(map, 3, cols, idx);
-          /* life bar */
+          /* life and mana bar */
           DO_TIMES(SCREEN_UNIT_SIZE(un)-4) {
             int x = SCREEN_UNIT_X(un)+2+f,
                 y = SCREEN_UNIT_Y(un);
-            if(x-(SCREEN_UNIT_X(un)+2) < r) {
-              if(INSIDE_SCREEN(x, y)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y) = COLOR(map[r]);  
-              if(INSIDE_SCREEN(x, y+1)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y+1) = COLOR(map[r]);  
-              if(INSIDE_SCREEN(x, y+2)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y+2) = COLOR(map[r]);  
-              /*if(INSIDE_SCREEN(x, y+3)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y+3) = COLOR(map[r]);  */
-            } else {
-              if(INSIDE_SCREEN(x, y)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y) = COLOR(TCOD_black);  
-              if(INSIDE_SCREEN(x, y+1)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y+1) = COLOR(TCOD_black);  
-              if(INSIDE_SCREEN(x, y+2)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y+2) = COLOR(TCOD_black);  
-              /*if(INSIDE_SCREEN(x, y+3)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y)))
-                ON_SCREEN(x, y+3) = COLOR(TCOD_black);  */
+            bool in_hp = x-(SCREEN_UNIT_X(un)+2) < r,
+                 in_mana = x-(SCREEN_UNIT_X(un)+2) < r2;
+            /* hp */
+            if(INSIDE_SCREEN(x, y+0)
+            && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+0)))
+              ON_SCREEN(x, y+0)   = in_hp ? COLOR(map[r]) : COLOR(TCOD_black);  
+            if(INSIDE_SCREEN(x, y+1)
+            && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+1)))
+              ON_SCREEN(x, y+1) = in_hp ? COLOR(map[r]) : COLOR(TCOD_black);  
+            if(INSIDE_SCREEN(x, y+2)
+            && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+2)))
+              ON_SCREEN(x, y+2) = in_hp ? COLOR(map[r]) : COLOR(TCOD_black);  
+            if(INSIDE_SCREEN(x, y+3)
+            && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+3)))
+              ON_SCREEN(x, y+3) = in_hp ? COLOR(map[r]) : COLOR(TCOD_black); 
+            /* mana */
+            if(MAX_MANA(un) > 0) {
+              if(INSIDE_SCREEN(x, y+4)
+              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+4)))
+                ON_SCREEN(x, y+4)   = in_mana ? COLOR(TCOD_blue) : COLOR(TCOD_black);  
+              if(INSIDE_SCREEN(x, y+5)
+              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+5)))
+                ON_SCREEN(x, y+5) = in_mana ? COLOR(TCOD_blue) : COLOR(TCOD_black);  
+              if(INSIDE_SCREEN(x, y+6)
+              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+6)))
+                ON_SCREEN(x, y+6) = in_mana ? COLOR(TCOD_blue) : COLOR(TCOD_black);  
+              if(INSIDE_SCREEN(x, y+7)
+              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y+7)))
+                ON_SCREEN(x, y+7) = in_mana ? COLOR(TCOD_blue) : COLOR(TCOD_black);  
             }
           }
         }
@@ -3319,7 +3718,8 @@ void CL_PostRender(void *sdl_surface) {
         AW_unit_t *un = &unit(u);
         TCOD_color_t color = pl->team_id == local_pl->team_id ? BLUE : RED;
         color = TCOD_color_multiply_scalar(color, 1.5f);
-        short r = un->hp * SCREEN_UNIT_SIZE(un) / MAX_HP(un);
+        short r = un->hp * SCREEN_UNIT_SIZE(un) / MAX_HP(un),
+              b = 4+(MAX_MANA(un) > 0 ? 4 : 0);
         int x, y;
         if(CL_IsUnitSelected(gi, c, u)) {
           DO_TIMES(SCREEN_UNIT_SIZE(un)>>2) {
@@ -3327,22 +3727,22 @@ void CL_PostRender(void *sdl_surface) {
             DO_TIMES(3) {
               int j = f;
               x = SCREEN_UNIT_X(un)+i,
-              y = SCREEN_UNIT_Y(un)+3+j;
+              y = SCREEN_UNIT_Y(un)+b+j;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(color);
               x = SCREEN_UNIT_X(un)+j,
-              y = SCREEN_UNIT_Y(un)+3+i;
+              y = SCREEN_UNIT_Y(un)+b+i;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(color);
               x = SCREEN_UNIT_X(un)+SCREEN_UNIT_SIZE(un)-1-i,
-              y = SCREEN_UNIT_Y(un)+3+j;
+              y = SCREEN_UNIT_Y(un)+b+j;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(color);
               x = SCREEN_UNIT_X(un)+SCREEN_UNIT_SIZE(un)-1-j,
-              y = SCREEN_UNIT_Y(un)+3+i;
+              y = SCREEN_UNIT_Y(un)+b+i;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(color);
@@ -3389,13 +3789,14 @@ void CL_PostRender(void *sdl_surface) {
             un->player_id == game_desc.local_player_id ? BLUE : 
             team_id == local_pl->team_id ? BLUE : RED;
           c = TCOD_color_multiply_scalar(c, 1.5f);
-          int x, y, size = SCREEN_UNIT_SIZE(un)>>2;
+          int x, y, size = SCREEN_UNIT_SIZE(un)>>2,
+              b = 4+(MAX_MANA(un) > 0 ? 4 : 0);
           DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)) {
             int i = f;
             DO_TIMES(3) {
               int j = f;
               x = SCREEN_UNIT_X(un)+i+size,
-              y = SCREEN_UNIT_Y(un)+3+j;
+              y = SCREEN_UNIT_Y(un)+b+j;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(c);
@@ -3411,12 +3812,12 @@ void CL_PostRender(void *sdl_surface) {
             DO_TIMES(3) {
               int j = f;
               x = SCREEN_UNIT_X(un)+j,
-              y = SCREEN_UNIT_Y(un)+size+3+i;
+              y = SCREEN_UNIT_Y(un)+size+b+i;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(c);
               x = SCREEN_UNIT_X(un)+SCREEN_UNIT_SIZE(un)-1-j,
-              y = SCREEN_UNIT_Y(un)+size+3+i;
+              y = SCREEN_UNIT_Y(un)+size+b+i;
               if(INSIDE_SCREEN(x, y)
               && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
                 ON_SCREEN(x, y) = COLOR(c);
@@ -4073,6 +4474,7 @@ AW_unit_ptr PL_SpawnUnit(AW_game_instance_t *gi, AW_player_ptr p, AW_id_t cmd_id
     un->pos_x                           = x;
     un->pos_y                           = y;
     un->hp = un->virtual_hp             = MAX_HP(un);
+    un->mana                            = MAX_MANA(un);
     un->blink_acc                       = 0;
     UN_PutInMap(gi, u);
     if(pl->unit_head != AW_null)
@@ -5437,6 +5839,8 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   FT_Init(gi, argc, argv);
   LI_Init(gi, argc, argv);
   SO_Init(gi, argc, argv);
+  FL_Init(gi, argc, argv);
+  BE_Init(gi, argc, argv);
   UN_Init(gi, argc, argv);
   PL_Init(gi);
   CL_Init(gi, argc, argv);
@@ -5539,6 +5943,8 @@ void GI_Free(AW_game_instance_t *gi) {
   PL_FreeAll(gi);
   UN_FreeAll(gi);
   SO_FreeAll(gi);
+  FL_FreeAll(gi);
+  BE_FreeAll(gi);
   LI_FreeAll(gi);
   BA_FreeAll(gi);
   SMOKE_FreeAll(gi);
@@ -5940,6 +6346,20 @@ void GI_UpdateMiscs(AW_game_instance_t *gi) {
       if(FT_Update(gi, ft2))
         FT_Free(gi, ft2);
     }
+    AW_fluid_ptr f = gi->fluid_head;
+    while(f != AW_null) {
+      AW_fluid_ptr f2 = f;
+      f = fluid(f).next;
+      if(FL_Update(gi, f2))
+        FL_Free(gi, f2);
+    }
+    AW_build_explosion_ptr bb = gi->build_explosion_head;
+    while(bb != AW_null) {
+      AW_build_explosion_ptr bb2 = bb;
+      bb = build_explosion(bb).next;
+      if(BE_Update(gi, bb2))
+        BE_Free(gi, bb2);
+    }
   }
 }
 
@@ -6321,7 +6741,6 @@ bool GI_PlayersConnected(AW_game_instance_t *gi) {
     i++;
     c = cl->next;
   }
-  trace(i);
   if(!seeders_connected) {
     ENetEvent e;
     if(enet_host_service(gi->host, &e, 50) != ENET_EVENT_TYPE_NONE) {

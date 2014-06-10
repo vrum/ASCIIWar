@@ -81,7 +81,7 @@ typedef string str;
 #define RELEASE 										false
 #define REPLAY 											false
 #define RECORD 											false
-#define FULLSCREEN    							false
+#define FULLSCREEN    							true
 #define THREADS											true
 
 #define NORMAL_TIME_STEP 						10
@@ -131,10 +131,17 @@ typedef string str;
 #define HUD_RES_Y     							(CON_RES_Y)-(MAP_SIZE_Y)
 #define LAGOMETER_SIZE 							MAX_AVER_FRAME_TIMES
 #define LAGOMETER_START_Y 					((CON_RES_Y*CHAR_SIZE)-LAGOMETER_SIZE)
+#define FLUID_DIFFUSION 						0.00001
+#define FLUID_VISCOSITY 						0.0000001
+#define FLUID_BOX_SIZE 							80
+#define FLUID_BOX_SIZE_SQUARE 			(FLUID_BOX_SIZE*FLUID_BOX_SIZE)
 #define TEAM_ID(PLAYER_ID) 					(player(GI_GetPlayerPtr(gi, (PLAYER_ID))).team_id)
 #define SWAP(T, A, B)								{T tmp; tmp = A; A = B; B = tmp;}
 #define AT(M, X, Y) 								(gi->M[(Y)*MAP_SIZE_X+(X)])
+#define AT2(M, X, Y) 								(M[(Y)*MAP_SIZE_X+(X)])
 #define AT_ENV(X, Y) 								(gi->env_map[(Y)*RANGE_MAP_SIZE_X+(X)])
+#define AT_FL(M, X, Y) 							(fl->M[(Y)*FLUID_BOX_SIZE+(X)])
+#define AT_FL2(M, X, Y) 						(M[(Y)*FLUID_BOX_SIZE+(X)])
 #define ON_CON_X(X) 								(((X)-offx)/CHAR_SIZE)
 #define ON_CON_Y(Y) 								(((Y)-offy)/CHAR_SIZE)
 #define INSIDE_MAP(X, Y) \
@@ -151,6 +158,12 @@ typedef string str;
 #define INSIDE_MINI(X, Y) \
  	   ((X) >= MINIMAP_CON_START_X && (X) < MINIMAP_CON_START_X+MINIMAP_CON_SIZE_X \
  	&&  (Y) >= MINIMAP_CON_START_Y && (Y) < MINIMAP_CON_START_Y+MINIMAP_CON_SIZE_Y)
+#define INSIDE_FLUID(X, Y) \
+ 	   ((X) >= fl->pos_x - FLUID_BOX_SIZE/2 && (X) < fl->pos_x + FLUID_BOX_SIZE/2 \
+ 	 && (Y) >= fl->pos_y - FLUID_BOX_SIZE/2 && (Y) < fl->pos_y + FLUID_BOX_SIZE/2)
+#define INSIDE_FLUID2(X, Y) \
+ 	   ((X) >= 0 && (X) < FLUID_BOX_SIZE \
+ 	 && (Y) >= 0 && (Y) < FLUID_BOX_SIZE)
 #define BOX_INSIDE_MAP(X1, Y1, X2, Y2, X3, Y3, X4, Y4) \
  		(INSIDE_MAP(X1, Y1) \
   || INSIDE_MAP(X2, Y2) \
@@ -228,6 +241,7 @@ typedef string str;
 #define ATTACK_SPEED(UN) 							(unit_dic[(UN)->unit_type].attack_speed)
 #define ATTACK_DAMAGE(UN)  						(unit_dic[(UN)->unit_type].attack_damage)
 #define MAX_HP(UN) 										(unit_dic[(UN)->unit_type].max_hp)
+#define MAX_MANA(UN) 									(unit_dic[(UN)->unit_type].max_mana)
 #define SIZE(UN) 											(unit_dic[(UN)->unit_type].size)
 #define VISIBILITY_RANGE(UN) 					(unit_dic[(UN)->unit_type].visibility_range)
 #define AGGRO_RANGE(UN) 							(unit_dic[(UN)->unit_type].aggro_range)
@@ -245,7 +259,7 @@ typedef string str;
 #define FOLLOW_COUNTER 							350
 #define FOLLOW_R_SQUARED 						((SIZE(un)*3) * (SIZE(un)*3))
 #define MAX_FORMATION_MOVE					(60*60)
-#define MAX_DEADLOCK_TELEPORT 			(SIZE(un)*6)
+#define MAX_DEADLOCK_TELEPORT 			(SIZE(un)*3)
 #define MAX_ADVANCE_TURN 						10
 
 #define BACKGROUND_COLOR 	TCOD_color_RGB(10, 10, 10)
@@ -555,6 +569,84 @@ void 									SO_FreeAll 			(AW_game_instance_t *gi, AW_sound_ptr l);
 void 									SO_Update 			(AW_game_instance_t *gi, AW_client_ptr c);
 
 /*
+ * fluids
+ */
+
+#define MAX_FLUID 				32
+#define FLUID_MAX_COUNTER 10
+#define FLUID_SPAN 				30000
+#define fluid(ptr)				(gi->fluids[(ptr)])
+typedef short AW_fluid_ptr;
+typedef short AW_client_ptr;
+
+struct AW_worker_fluid_param_t {
+	AW_game_instance_t *gi;
+	AW_fluid_ptr f;
+	AW_time_t game_time_step;
+};
+
+struct AW_fluid_t {
+	float 									fluid_s[FLUID_BOX_SIZE_SQUARE],
+  												fluid_density[FLUID_BOX_SIZE_SQUARE],
+  												fluid_final_density[FLUID_BOX_SIZE_SQUARE],
+  												fluid_max_density[FLUID_BOX_SIZE_SQUARE],
+  												fluid_Vx[FLUID_BOX_SIZE_SQUARE],
+  												fluid_Vy[FLUID_BOX_SIZE_SQUARE],
+  												fluid_Vx0[FLUID_BOX_SIZE_SQUARE],
+  												fluid_Vy0[FLUID_BOX_SIZE_SQUARE],
+  												diffusion;
+	short 									counter,
+													pos_x,
+													pos_y;
+	AW_time_t 							span;
+	TCOD_color_t 						color;
+	AW_fluid_ptr						next,
+													previous,
+													fnext;
+	AW_worker_fluid_param_t worker_param;
+	HANDLE 									handle;
+	DWORD										id;
+};
+
+void 					FL_Init				(AW_game_instance_t *gi, int argc, char** argv);
+AW_fluid_ptr 	FL_New				(AW_game_instance_t *gi);
+void 					FL_Free				(AW_game_instance_t *gi, AW_fluid_ptr l);
+void 					FL_FreeAll 		(AW_game_instance_t *gi, AW_fluid_ptr l);
+void 					FL_Step 			(AW_game_instance_t *gi, AW_fluid_ptr l);
+bool 					FL_Update 		(AW_game_instance_t *gi, AW_fluid_ptr l);
+DWORD WINAPI 	FL_WorkerFun 	(void *param);
+void 					FL_SetBnd 		(AW_game_instance_t *gi, int b, float *x);
+void 					FL_LinSolve		(AW_game_instance_t *gi, int b, float *x, float *x0, float a, float c, int iter);
+void 					FL_Diffuse		(AW_game_instance_t *gi, int b, float *x, float *x0, float diff, int iter);
+void 					FL_Project		(AW_game_instance_t *gi, float *velocX, float *velocY, float *p, float *div, int iter);
+void 					FL_Advect			(AW_game_instance_t *gi, int b, float *d, float *d0,  float *velocX, float *velocY);
+
+/*
+ * build_explosions
+ */
+
+#define MAX_BUILD_EXPLOSION 			MAX_FLUID
+#define BUILD_EXPLOSION_SPAN 			600
+#define build_explosion(ptr)			(gi->build_explosions[(ptr)])
+typedef short AW_build_explosion_ptr;
+
+struct AW_build_explosion_t {
+	AW_time_t 							span;
+	short 									state;
+	short 									pos_x,
+													pos_y;
+	AW_build_explosion_ptr	next,
+													previous,
+													fnext;
+};
+
+void 										BE_Init					(AW_game_instance_t *gi, int argc, char** argv);
+AW_build_explosion_ptr  BE_New					(AW_game_instance_t *gi);
+void 										BE_Free					(AW_game_instance_t *gi, AW_build_explosion_ptr l);
+void 										BE_FreeAll 			(AW_game_instance_t *gi, AW_build_explosion_ptr l);
+bool 										BE_Update 			(AW_game_instance_t *gi, AW_build_explosion_ptr c);
+
+/*
  * build order
  */
 
@@ -604,6 +696,7 @@ struct AW_unit_class_t {
   							attack_speed,
   							attack_damage;
   int 					max_hp,
+  							max_mana,
   							size, 	
   							visibility_range,
   							aggro_range,
@@ -630,6 +723,7 @@ struct AW_unit_t {
 													pos_y,
 													virtual_hp,
 													hp,
+													mana,
 													path_index,
 													path_len,
 													chase_cx,
@@ -925,6 +1019,7 @@ void 						CL_RenderEnvMap								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderUnits								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBloom 								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBalls								(AW_game_instance_t *gi, AW_client_ptr c);
+void 						CL_RenderFluid								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderWinLose							(AW_game_instance_t *gi, AW_client_ptr c);
 void          	CL_RenderWindow             	(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderFps									(AW_game_instance_t *gi);
@@ -1178,6 +1273,12 @@ struct AW_game_instance_t {
 	AW_sound_t 											sounds[MAX_SOUND];
 	AW_sound_ptr 										free_sound_head;
 	AW_sound_ptr 										sound_head;
+	AW_fluid_t 											fluids[MAX_FLUID];
+	AW_fluid_ptr 										free_fluid_head;
+	AW_fluid_ptr 										fluid_head;
+	AW_build_explosion_t 						build_explosions[MAX_BUILD_EXPLOSION];
+	AW_build_explosion_ptr 					free_build_explosion_head;
+	AW_build_explosion_ptr 					build_explosion_head;
 	AW_unit_t 											units[MAX_UNIT];
 	AW_unit_ptr 										free_unit_head;
 	AW_unit_ptr 										unit_head;

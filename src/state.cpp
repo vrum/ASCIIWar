@@ -54,8 +54,7 @@ if(GI_InState(gi, AW_state_game)) {
     if(gi->host) {
       LISTEN_MASTER_SERVER
       GI_CheckConnectionToMasterServer(gi, &e, AW_state_main_menu);
-    } else 
-      GI_ConnectToMasterServer(gi);
+    }
     if(BTN_IsClicked(gi, &gi->multi_btns.btns[3])) /* quit */
       AW_Quit();
   }
