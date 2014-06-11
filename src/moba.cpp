@@ -1058,6 +1058,7 @@ void MOBA_DeathCB(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr 
         AW_build_explosion_t *be = &build_explosion(b);
         be->pos_x = un->pos_x;
         be->pos_y = un->pos_y;
+        be->size  = SIZE(un);
         AW_player_ptr p2 = gi->player_head;
         while(p2 != AW_null) {
           AW_player_t *pl2 = &player(p2);
@@ -1080,18 +1081,21 @@ void MOBA_DeathCB(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr 
         AW_build_explosion_t *be = &build_explosion(b);
         be->pos_x = un->pos_x;
         be->pos_y = un->pos_y;
+        be->size  = SIZE(un);
       } break;
     case AW_unit_type_G: {
         AW_build_explosion_ptr b = BE_New(gi);;
         AW_build_explosion_t *be = &build_explosion(b);
         be->pos_x = un->pos_x;
         be->pos_y = un->pos_y;
+        be->size  = SIZE(un);
       } break;
     case AW_unit_type_L: {
         AW_build_explosion_ptr b = BE_New(gi);;
         AW_build_explosion_t *be = &build_explosion(b);
         be->pos_x = un->pos_x;
         be->pos_y = un->pos_y;
+        be->size  = SIZE(un);
       } break;
     default: {
         /* start the resurection */

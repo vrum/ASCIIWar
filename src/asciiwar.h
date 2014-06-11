@@ -283,6 +283,9 @@ typedef string str;
 #define BLUE 							TCOD_color_RGB(34, 70, 240)//TCOD_color_RGB(34, 90, 192)
 #define RED 							TCOD_color_RGB(240, 29, 29)
 #define BLOOD_COLOR 			TCOD_color_RGB(195, 25, 12)
+#define BURN_TRACE_COLOR 	TCOD_color_RGB(45, 45, 45)
+#define FLUID_COLOR 			TCOD_color_RGB(150, 200, 255)
+#define LIGHTNING_COLOR 	TCOD_color_RGB(150, 200, 255)
 
 #define	AW_EMPTY 		'.' 	
 #define	AW_WALL  		'#'
@@ -492,6 +495,32 @@ void 									BLOOD_FreeAll 		(AW_game_instance_t *gi, AW_blood_ptr b);
 bool 									BLOOD_Update 			(AW_game_instance_t *gi, AW_blood_ptr b);
 
 /*
+ * burn_trace
+ */
+
+#define MAX_BURN_TRACE 				8392
+#define BURN_TRACE_LIFE_SPAN 	10000000
+#define burn_trace(ptr)						(gi->burn_traces[(ptr)])
+typedef short AW_burn_trace_ptr;
+
+struct AW_burn_trace_t {
+	TCOD_color_t 	c;
+	AW_time_t 		span;
+	float 				opacity;
+	short 				pos_x,
+								pos_y;
+	AW_burn_trace_ptr	next,
+								previous,
+								fnext;
+};
+
+void 									BT_Init				(AW_game_instance_t *gi, int argc, char** argv);
+AW_burn_trace_ptr 		BT_New				(AW_game_instance_t *gi);
+void 									BT_Free				(AW_game_instance_t *gi, AW_burn_trace_ptr b);
+void 									BT_FreeAll 		(AW_game_instance_t *gi, AW_burn_trace_ptr b);
+bool 									BT_Update 		(AW_game_instance_t *gi, AW_burn_trace_ptr b);
+
+/*
  * floating_text
  */
 
@@ -626,7 +655,7 @@ void 					FL_Advect			(AW_game_instance_t *gi, int b, float *d, float *d0,  floa
  */
 
 #define MAX_BUILD_EXPLOSION 			MAX_FLUID
-#define BUILD_EXPLOSION_SPAN 			600
+#define BUILD_EXPLOSION_SPAN 			500
 #define build_explosion(ptr)			(gi->build_explosions[(ptr)])
 typedef short AW_build_explosion_ptr;
 
@@ -634,7 +663,8 @@ struct AW_build_explosion_t {
 	AW_time_t 							span;
 	short 									state;
 	short 									pos_x,
-													pos_y;
+													pos_y,
+													size;
 	AW_build_explosion_ptr	next,
 													previous,
 													fnext;
@@ -645,6 +675,42 @@ AW_build_explosion_ptr  BE_New					(AW_game_instance_t *gi);
 void 										BE_Free					(AW_game_instance_t *gi, AW_build_explosion_ptr l);
 void 										BE_FreeAll 			(AW_game_instance_t *gi, AW_build_explosion_ptr l);
 bool 										BE_Update 			(AW_game_instance_t *gi, AW_build_explosion_ptr c);
+
+/*
+ * lightnings
+ */
+
+#define MAX_LIGHTNING 						256
+#define LIGHTNING_STEP_COUNT 			6 						
+#define MAX_LIGHTNING_POINT 			(32)
+#define LIGHTNING_SPAN 						300
+#define lightning(ptr)			(gi->lightnings[(ptr)])
+typedef short AW_lightning_ptr;
+
+struct AW_lightning_t {
+	unsigned int 						seed;
+	AW_time_t 							span;
+	float 									opacity;
+	short 									start_x,
+													start_y,
+													end_x,
+													end_y,
+													point_count,
+													pos_x[MAX_LIGHTNING_POINT],
+													pos_y[MAX_LIGHTNING_POINT];
+	TCOD_color_t 						color;
+	AW_lightning_ptr	next,
+													previous,
+													fnext;
+};
+
+void 										LG_Init					(AW_game_instance_t *gi, int argc, char** argv);
+AW_lightning_ptr  			LG_New					(AW_game_instance_t *gi);
+void 										LG_Free					(AW_game_instance_t *gi, AW_lightning_ptr l);
+void 										LG_FreeAll 			(AW_game_instance_t *gi, AW_lightning_ptr l);
+bool 										LG_Update 			(AW_game_instance_t *gi, AW_lightning_ptr c);
+void 										LG_Compute 			(AW_game_instance_t *gi, AW_lightning_ptr l);
+void 										LG_BuildPoints	(AW_game_instance_t *gi, AW_lightning_ptr l, int x0, int y0, int x1, int y1, int i, int j, int level);
 
 /*
  * build order
@@ -1014,12 +1080,14 @@ void 						CL_RenderCursor								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderSelection						(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderSmokes								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBlood								(AW_game_instance_t *gi, AW_client_ptr c);
+void 						CL_RenderBurnTrace						(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderFloatingText					(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderEnvMap								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderUnits								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBloom 								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBalls								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderFluid								(AW_game_instance_t *gi, AW_client_ptr c);
+void 						CL_RenderLightning						(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderWinLose							(AW_game_instance_t *gi, AW_client_ptr c);
 void          	CL_RenderWindow             	(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderFps									(AW_game_instance_t *gi);
@@ -1261,6 +1329,9 @@ struct AW_game_instance_t {
 	AW_blood_t 											bloods[MAX_BLOOD];
 	AW_blood_ptr 										free_blood_head;
 	AW_blood_ptr 										blood_head;
+	AW_burn_trace_t 								burn_traces[MAX_BURN_TRACE];
+	AW_burn_trace_ptr 							free_burn_trace_head;
+	AW_burn_trace_ptr 							burn_trace_head;
 	AW_floating_text_t 							floating_texts[MAX_FLOATING_TEXT];
 	AW_floating_text_ptr 						free_floating_text_head;
 	AW_floating_text_ptr 						floating_text_head;
@@ -1279,6 +1350,9 @@ struct AW_game_instance_t {
 	AW_build_explosion_t 						build_explosions[MAX_BUILD_EXPLOSION];
 	AW_build_explosion_ptr 					free_build_explosion_head;
 	AW_build_explosion_ptr 					build_explosion_head;
+	AW_lightning_t 									lightnings[MAX_LIGHTNING];
+	AW_lightning_ptr 								free_lightning_head;
+	AW_lightning_ptr 								lightning_head;
 	AW_unit_t 											units[MAX_UNIT];
 	AW_unit_ptr 										free_unit_head;
 	AW_unit_ptr 										unit_head;

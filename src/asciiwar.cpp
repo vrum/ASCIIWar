@@ -448,6 +448,66 @@ bool BLOOD_Update(AW_game_instance_t *gi, AW_blood_ptr b) {
 }
 
 /*
+ * burn_traces
+ */
+
+void BT_Init(AW_game_instance_t *gi, int argc, char** argv) {
+  // create burn_traces.
+  for(int i = 0; i < MAX_BURN_TRACE; i++) {
+    if(i != MAX_BURN_TRACE-1)
+      burn_trace(i).fnext = i+1;
+    else
+      burn_trace(i).fnext = AW_null;
+  }
+  gi->free_burn_trace_head = 0;
+  gi->burn_trace_head      = AW_null;
+  trace("burn_traces initiated.");
+}
+
+AW_burn_trace_ptr BT_New(AW_game_instance_t *gi) {
+  if(gi->free_burn_trace_head != AW_null) {
+    AW_burn_trace_ptr r            = gi->free_burn_trace_head;
+    gi->free_burn_trace_head       = burn_trace(gi->free_burn_trace_head).fnext;
+    burn_trace(r).span             = BURN_TRACE_LIFE_SPAN;
+    burn_trace(r).previous         = AW_null;
+    burn_trace(r).next             = gi->burn_trace_head;
+    burn_trace(r).c                = TCOD_color_multiply_scalar(BURN_TRACE_COLOR, (float)(128+(rand()&127))/255);
+    burn_trace(r).opacity          = 0.8;
+    if(gi->burn_trace_head != AW_null)
+      burn_trace(gi->burn_trace_head).previous = r;
+    gi->burn_trace_head = r;
+    return r;
+  }
+  trace("No more burn_trace left.");
+  return AW_null;
+}
+
+void BT_Free(AW_game_instance_t *gi, AW_burn_trace_ptr b) {
+  if(gi->burn_trace_head == b)
+    gi->burn_trace_head = burn_trace(b).next;
+  if(burn_trace(b).previous != AW_null)
+    burn_trace(burn_trace(b).previous).next = burn_trace(b).next;
+  if(burn_trace(b).next != AW_null)
+    burn_trace(burn_trace(b).next).previous = burn_trace(b).previous;
+  burn_trace(b).fnext = gi->free_burn_trace_head;
+  gi->free_burn_trace_head = b;
+}
+
+void BT_FreeAll(AW_game_instance_t *gi) {
+  while(gi->burn_trace_head != AW_null)
+    BT_Free(gi, gi->burn_trace_head);
+  trace("burn_traces freed.");
+}
+
+bool BT_Update(AW_game_instance_t *gi, AW_burn_trace_ptr b) {
+  AW_burn_trace_t *bt = &burn_trace(b);
+  //bt->span -= gi->game_time_step;
+  if(bt->span <= 0)
+    return true; /* free the blood */
+  return false; /* don't free the blood */
+}
+
+/*
  * floating_texts
  */
 
@@ -707,7 +767,7 @@ AW_fluid_ptr FL_New(AW_game_instance_t *gi) {
     fluid(r).span             = FLUID_SPAN;
     fluid(r).handle           = null;
     fluid(r).diffusion        = FLUID_DIFFUSION;
-    fluid(r).color            = TCOD_color_RGB(150, 175, 255);
+    fluid(r).color            = FLUID_COLOR;
     DO_TIMES(FLUID_BOX_SIZE_SQUARE) {
       fluid(r).fluid_s[f]        = 0;
       fluid(r).fluid_density[f]  = 0;
@@ -744,22 +804,6 @@ void FL_FreeAll(AW_game_instance_t *gi) {
   while(gi->fluid_head != AW_null)
     FL_Free(gi, gi->fluid_head);
   trace("fluids freed.");
-}
-
-void FL_Step(AW_game_instance_t *gi, AW_fluid_ptr f) {
-  AW_fluid_t *fl = &fluid(f);
-  FL_Diffuse(gi, 1, fl->fluid_Vx0, fl->fluid_Vx, FLUID_VISCOSITY, 1);
-  FL_Diffuse(gi, 2, fl->fluid_Vy0, fl->fluid_Vy, FLUID_VISCOSITY, 1);
-  
-  FL_Project(gi, fl->fluid_Vx0, fl->fluid_Vy0, fl->fluid_Vx, fl->fluid_Vy, 1);
-  
-  FL_Advect(gi, 1, fl->fluid_Vx, fl->fluid_Vx0, fl->fluid_Vx0, fl->fluid_Vy0);
-  FL_Advect(gi, 2, fl->fluid_Vy, fl->fluid_Vy0, fl->fluid_Vx0, fl->fluid_Vy0);
-  
-  FL_Project(gi, fl->fluid_Vx, fl->fluid_Vy, fl->fluid_Vx0, fl->fluid_Vy0, 1);
-  
-  FL_Diffuse(gi, 0, fl->fluid_s, fl->fluid_density, fl->diffusion, 1);
-  FL_Advect(gi, 0, fl->fluid_density, fl->fluid_s, fl->fluid_Vx, fl->fluid_Vy);
 }
 
 bool FL_Update(AW_game_instance_t *gi, AW_fluid_ptr ff) {
@@ -822,6 +866,22 @@ DWORD WINAPI FL_WorkerFun(void *param) {
   FL_Step(gi, f);
 }
 
+void FL_Step(AW_game_instance_t *gi, AW_fluid_ptr f) {
+  AW_fluid_t *fl = &fluid(f);
+  FL_Diffuse(gi, 1, fl->fluid_Vx0, fl->fluid_Vx, FLUID_VISCOSITY, 1);
+  FL_Diffuse(gi, 2, fl->fluid_Vy0, fl->fluid_Vy, FLUID_VISCOSITY, 1);
+  
+  FL_Project(gi, fl->fluid_Vx0, fl->fluid_Vy0, fl->fluid_Vx, fl->fluid_Vy, 1);
+  
+  FL_Advect(gi, 1, fl->fluid_Vx, fl->fluid_Vx0, fl->fluid_Vx0, fl->fluid_Vy0);
+  FL_Advect(gi, 2, fl->fluid_Vy, fl->fluid_Vy0, fl->fluid_Vx0, fl->fluid_Vy0);
+  
+  FL_Project(gi, fl->fluid_Vx, fl->fluid_Vy, fl->fluid_Vx0, fl->fluid_Vy0, 1);
+  
+  FL_Diffuse(gi, 0, fl->fluid_s, fl->fluid_density, fl->diffusion, 1);
+  FL_Advect(gi, 0, fl->fluid_density, fl->fluid_s, fl->fluid_Vx, fl->fluid_Vy);
+}
+
 void FL_SetBnd(AW_game_instance_t *gi, int b, float *x) {
  for(int i = 1; i < FLUID_BOX_SIZE - 1; i++) {
     AT_FL2(x, i, 0)                 = b == 2 ? -AT_FL2(x, i, 1) : AT_FL2(x, i, 1);
@@ -863,7 +923,6 @@ void FL_LinSolve(AW_game_instance_t *gi, int b, float *x, float *x0, float a, fl
 }
 
 void FL_Diffuse(AW_game_instance_t *gi, int b, float *x, float *x0, float diff, int iter) {
-  assert(gi->game_time_step != 0);
   float a = 0.015 * diff * (FLUID_BOX_SIZE - 2) * (FLUID_BOX_SIZE - 2);
   FL_LinSolve(gi, b, x, x0, a, 1 + 6 * a, iter);
 }
@@ -959,6 +1018,7 @@ AW_build_explosion_ptr BE_New(AW_game_instance_t *gi) {
     build_explosion(r).next             = gi->build_explosion_head;
     build_explosion(r).span             = BUILD_EXPLOSION_SPAN;
     build_explosion(r).state            = 0;
+    build_explosion(r).size             = 3;
     if(gi->build_explosion_head != AW_null)
       build_explosion(gi->build_explosion_head).previous = r;
     gi->build_explosion_head = r;
@@ -986,6 +1046,7 @@ void BE_FreeAll(AW_game_instance_t *gi) {
 }
 
 bool BE_Update(AW_game_instance_t *gi, AW_build_explosion_ptr b) {
+  unsigned int seed = AW_GetTime();
   AW_build_explosion_t *be = &build_explosion(b);
   if(be->span == BUILD_EXPLOSION_SPAN) {
     AW_fluid_ptr f = FL_New(gi);
@@ -993,6 +1054,18 @@ bool BE_Update(AW_game_instance_t *gi, AW_build_explosion_ptr b) {
     fl->pos_x = be->pos_x;
     fl->pos_y = be->pos_y;
     fl->diffusion = FLUID_DIFFUSION*5;
+    int count = 3+AW_Rand(&seed)&3;
+    DO_TIMES(count) {
+      AW_lightning_ptr l = LG_New(gi);
+      if(l != AW_null) {
+        AW_lightning_t *lg = &lightning(l);
+        lg->end_x = be->pos_x + ((AW_Rand(&seed)&3)-2);
+        lg->end_y = be->pos_y + ((AW_Rand(&seed)&3)-2);
+        lg->start_x = be->pos_x + ((AW_Rand(&seed)&31)-15);
+        lg->start_y = be->pos_y - (16 + (AW_Rand(&seed)&15));
+        LG_Compute(gi, l);
+      }
+    }
     be->state++;
   } else 
   if(be->span <= 2*BUILD_EXPLOSION_SPAN/3
@@ -1002,6 +1075,34 @@ bool BE_Update(AW_game_instance_t *gi, AW_build_explosion_ptr b) {
     fl->pos_x = be->pos_x;
     fl->pos_y = be->pos_y;
     fl->diffusion = FLUID_DIFFUSION*5;
+    int count = 3+AW_Rand(&seed)&3;
+    DO_TIMES(count) {
+      AW_lightning_ptr l = LG_New(gi);
+      if(l != AW_null) {
+        AW_lightning_t *lg = &lightning(l);
+        lg->end_x = be->pos_x + ((AW_Rand(&seed)&3)-2);
+        lg->end_y = be->pos_y + ((AW_Rand(&seed)&3)-2);
+        lg->start_x = be->pos_x + ((AW_Rand(&seed)&31)-15);
+        lg->start_y = be->pos_y - (16 + (AW_Rand(&seed)&15));
+        LG_Compute(gi, l);
+      }
+    }
+    SOCLE(be->size) {
+      int x0 = be->pos_x + i,
+          y0 = be->pos_y + j,
+          x1 = x0 + (AW_Rand(&seed)%24)-12,
+          y1 = y0 + (AW_Rand(&seed)%24)-12;
+      float i = 0;
+      TCOD_line_init(x0, y0, x1, y1);
+      do {
+        AW_burn_trace_ptr b = BT_New(gi);
+        AW_burn_trace_t *bt = &burn_trace(b);
+        bt->pos_x = x0;
+        bt->pos_y = y0;
+        bt->opacity = SATURATE(1.f - i / 8);
+        i++;
+      } while(!TCOD_line_step(&x0, &y0));
+    }
     be->state++;
   } else 
   if(be->span <= BUILD_EXPLOSION_SPAN/3
@@ -1010,10 +1111,160 @@ bool BE_Update(AW_game_instance_t *gi, AW_build_explosion_ptr b) {
     AW_fluid_t *fl = &fluid(f);
     fl->pos_x = be->pos_x;
     fl->pos_y = be->pos_y;
+    fl->diffusion = FLUID_DIFFUSION;
+    int count = 3+AW_Rand(&seed)&3;
+    DO_TIMES(count) {
+      AW_lightning_ptr l = LG_New(gi);
+      if(l != AW_null) {
+        AW_lightning_t *lg = &lightning(l);
+        lg->end_x = be->pos_x + ((AW_Rand(&seed)&3)-2);
+        lg->end_y = be->pos_y + ((AW_Rand(&seed)&3)-2);
+        lg->start_x = be->pos_x + ((AW_Rand(&seed)&31)-15);
+        lg->start_y = be->pos_y - (16 + (AW_Rand(&seed)&15));
+        LG_Compute(gi, l);
+      }
+    }
+    be->state++;
+  } else 
+  if(be->span <= BUILD_EXPLOSION_SPAN/12
+  && be->state == 3) {
+    int count = 3+AW_Rand(&seed)&3;
+    DO_TIMES(count) {
+      AW_lightning_ptr l = LG_New(gi);
+      if(l != AW_null) {
+        AW_lightning_t *lg = &lightning(l);
+        lg->end_x = be->pos_x + ((AW_Rand(&seed)&3)-2);
+        lg->end_y = be->pos_y + ((AW_Rand(&seed)&3)-2);
+        lg->start_x = be->pos_x + ((AW_Rand(&seed)&31)-15);
+        lg->start_y = be->pos_y - (16 + (AW_Rand(&seed)&15));
+        LG_Compute(gi, l);
+      }
+    }
     be->state++;
   }
   be->span -= gi->game_time_step;
   return be->span <= 0;
+}
+
+/*
+ * lightnings
+ */
+
+void LG_Init(AW_game_instance_t *gi, int argc, char** argv) {
+  // create lightnings.
+  for(int i = 0; i < MAX_LIGHTNING; i++) {
+    if(i != MAX_LIGHTNING-1)
+      lightning(i).fnext = i+1;
+    else
+      lightning(i).fnext = AW_null;
+  }
+  gi->free_lightning_head = 0;
+  gi->lightning_head      = AW_null;
+  trace("lightnings initiated.");
+}
+
+AW_lightning_ptr LG_New(AW_game_instance_t *gi) {
+  if(gi->free_lightning_head != AW_null) {
+    AW_lightning_ptr r            = gi->free_lightning_head;
+    gi->free_lightning_head       = lightning(gi->free_lightning_head).fnext;
+    lightning(r).previous         = AW_null;
+    lightning(r).next             = gi->lightning_head;
+    lightning(r).span             = LIGHTNING_SPAN;
+    lightning(r).color            = LIGHTNING_COLOR;
+    lightning(r).opacity          = 1;
+    lightning(r).seed             = AW_GetTime();
+    if(gi->lightning_head != AW_null)
+      lightning(gi->lightning_head).previous = r;
+    gi->lightning_head = r;
+    return r;
+  }
+  trace("No more lightning left.");
+  return AW_null;
+}
+
+void LG_Free(AW_game_instance_t *gi, AW_lightning_ptr l) {
+  if(gi->lightning_head == l)
+    gi->lightning_head = lightning(l).next;
+  if(lightning(l).previous != AW_null)
+    lightning(lightning(l).previous).next = lightning(l).next;
+  if(lightning(l).next != AW_null)
+    lightning(lightning(l).next).previous = lightning(l).previous;
+  lightning(l).fnext = gi->free_lightning_head;
+  gi->free_lightning_head = l;
+}
+
+void LG_FreeAll(AW_game_instance_t *gi) {
+  while(gi->lightning_head != AW_null)
+    LG_Free(gi, gi->lightning_head);
+  trace("lightnings freed.");
+}
+
+bool LG_Update(AW_game_instance_t *gi, AW_lightning_ptr b) {
+  AW_lightning_t *lg = &lightning(b);
+  lg->span -= gi->game_time_step;
+  lg->opacity = SATURATE((float)lg->span / LIGHTNING_SPAN);
+  return lg->span <= 0;
+}
+
+void LG_Compute(AW_game_instance_t *gi, AW_lightning_ptr l) {
+  AW_lightning_t *lg = &lightning(l);
+  LG_BuildPoints(gi, l, lg->start_x, lg->start_y, lg->end_x, lg->end_y, 0, MAX_LIGHTNING_POINT-1, 1);
+  lg->point_count = 0;
+  DO_TIMES(MAX_LIGHTNING_POINT-1) {
+    int x0 = lg->pos_x[f+0],
+        y0 = lg->pos_y[f+0],
+        x1 = lg->pos_x[f+1],
+        y1 = lg->pos_y[f+1];
+    TCOD_line_init(x0, y0, x1, y1);
+    while(!TCOD_line_step(&x0, &y0)) {
+      lg->point_count++;
+    }
+  }
+  /*int dist = (lg->start_x - lg->end_x) * (lg->start_x - lg->end_x)
+           + (lg->start_y - lg->end_y) * (lg->start_y - lg->end_y);
+  if(dist > (10*10)) {
+    int x0 = lg->pos_x[MAX_LIGHTNING_POINT/3],
+        y0 = lg->pos_y[MAX_LIGHTNING_POINT/3],
+        x1 = lg->pos_x[MAX_LIGHTNING_POINT/3+10],
+        y1 = lg->pos_y[MAX_LIGHTNING_POINT/3+10],
+        nx = -(y1-y0),
+        ny =  (x1-x0);
+    AW_lightning_ptr l2 = LG_New(gi);
+    if(l2 != AW_null) {
+      AW_lightning_t *lg2 = &lightning(l2);
+      lg2->start_x  = lg->pos_x[MAX_LIGHTNING_POINT/3];
+      lg2->start_y  = lg->pos_y[MAX_LIGHTNING_POINT/3];
+      lg2->end_x    = lg2->start_x + (nx*((AW_Rand(&lg2->seed)&1) == 0 ? -1 : 1)+ny);
+      lg2->end_y    = lg2->start_y + (ny*((AW_Rand(&lg2->seed)&1) == 0 ? -1 : 1)-nx);
+      lg2->opacity  = lg->opacity * 0.66;
+      LG_Compute(gi, l2);
+    }
+  }*/
+}
+
+void LG_BuildPoints(AW_game_instance_t *gi, AW_lightning_ptr l, int x0, int y0, int x1, int y1, int i, int j, int level) {
+  AW_lightning_t *lg = &lightning(l);
+  if(j-i > 1) {
+    int count = j-i-2 >= LIGHTNING_STEP_COUNT ? LIGHTNING_STEP_COUNT : 1+AW_Rand(&lg->seed)%(j-i-1),
+        step = (j-i)/(count+1),
+        dx  = x1-x0,
+        dy  = y1-y0,
+        nx  = -dy,
+        ny  = dx;
+    DO_TIMES(count) {
+      int k = i+(f+1)*step;
+      lg->pos_x[k] = x0 + dx*(k-i)/(j-i) + ((AW_Rand(&lg->seed)&1023)-512)*(nx>>3)/512;
+      lg->pos_y[k] = y0 + dy*(k-i)/(j-i) + ((AW_Rand(&lg->seed)&1023)-512)*(ny>>3)/512;
+    }
+    lg->pos_x[i] = x0;
+    lg->pos_y[i] = y0;
+    lg->pos_x[j] = x1;
+    lg->pos_y[j] = y1;
+    LG_BuildPoints(gi, l, lg->pos_x[i], lg->pos_y[i], lg->pos_x[i+step], lg->pos_y[i+step], i, i+step, level);
+    LG_BuildPoints(gi, l, lg->pos_x[i+count*step], lg->pos_y[i+count*step], lg->pos_x[j], lg->pos_y[j], i+count*step, j, level);
+    DO_TIMES(count-1) 
+      LG_BuildPoints(gi, l, lg->pos_x[i+(f+1)*step], lg->pos_y[i+(f+1)*step], lg->pos_x[i+(f+2)*step], lg->pos_y[i+(f+2)*step], i+(f+1)*step, i+(f+2)*step, level);
+  }
 }
 
 /*
@@ -1995,10 +2246,12 @@ void CL_Update(AW_game_instance_t *gi, AW_client_ptr c) {
     CL_RenderEnvMap(gi, c);
     CL_RenderUnits(gi, c);
     CL_RenderBlood(gi, c);
+    CL_RenderBurnTrace(gi, c);
     CL_RenderFloatingText(gi, c);
     CL_RenderBloom(gi, c);
     CL_RenderBalls(gi, c);
     CL_RenderFluid(gi, c);
+    CL_RenderLightning(gi, c);
     CL_RenderSelection(gi, c);
     CL_RenderCursor(gi, c);
     CL_RenderWinLose(gi, c);
@@ -2294,12 +2547,16 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
       AW_build_explosion_t *be = &build_explosion(b);
       be->pos_x = cl->viewport_x+gi->mouse.cx;
       be->pos_y = cl->viewport_y+gi->mouse.cy;
+      be->size  = 5;
     }
     if(GI_IsKeyReleased(gi, TCODK_SPACE)) {
-      AW_fluid_ptr f = FL_New(gi);
-      AW_fluid_t *fl = &fluid(f);
-      fl->pos_x = cl->viewport_x+gi->mouse.cx;
-      fl->pos_y = cl->viewport_y+gi->mouse.cy;
+      AW_lightning_ptr l = LG_New(gi);
+      AW_lightning_t *lg = &lightning(l);
+      lg->start_x = cl->viewport_x+gi->mouse.cx;
+      lg->start_y = cl->viewport_y+gi->mouse.cy;
+      lg->end_x = lg->start_x + 60;
+      lg->end_y = lg->start_y;
+      LG_Compute(gi, l);
     }
   } else {
     if(cl->window_opened
@@ -2473,6 +2730,28 @@ void CL_RenderBlood(AW_game_instance_t *gi, AW_client_ptr c) {
         TCOD_BKGND_SET);
     }
     b = bl->next;
+  }
+}
+
+void CL_RenderBurnTrace(AW_game_instance_t *gi, AW_client_ptr c) {
+  AW_client_t *cl = &client(c);
+  AW_player_ptr p = GI_GetPlayerPtr(gi, cl->player_id);
+  AW_burn_trace_ptr b = gi->burn_trace_head;
+  while(b != AW_null) {
+    AW_burn_trace_t *bt = &burn_trace(b);
+    int i = bt->pos_x-cl->viewport_x,
+        j = bt->pos_y-cl->viewport_y;
+    bool vis = PL_IsInFov(gi, p, bt->pos_x>>RANGE_SHIFT, bt->pos_y>>RANGE_SHIFT);
+    if(INSIDE_CON(i, j)
+    && AT(unit_map, bt->pos_x, bt->pos_y) == AW_null
+    && vis) {
+      int light = PL_GetLight(gi, p, bt->pos_x>>RANGE_SHIFT, bt->pos_y>>RANGE_SHIFT);
+      TCOD_color_t c = TCOD_console_get_char_foreground(con, i, j);
+      c = TCOD_color_lerp(c, bt->c, (float)bt->opacity*light/255);
+      TCOD_console_set_char_foreground(con, i, j, c);
+      TCOD_console_set_char_background(con, i, j, c, TCOD_BKGND_SET);
+    }
+    b = bt->next;
   }
 }
 
@@ -3087,6 +3366,34 @@ void CL_RenderFluid(AW_game_instance_t *gi, AW_client_ptr c) {
       }
     }
     f = fl->next;
+  }
+}
+
+void CL_RenderLightning(AW_game_instance_t *gi, AW_client_ptr c) {
+  static int mouse_x = 0, mouse_y = 0;
+  AW_client_t *cl = &client(c);
+  AW_player_ptr p = GI_GetPlayerPtr(gi, cl->player_id);
+  AW_lightning_ptr l = gi->lightning_head;
+  while(l != AW_null) {
+    AW_lightning_t *lg = &lightning(l);
+    float k = 0;
+    DO_TIMES(MAX_LIGHTNING_POINT-1) {
+      int x0 = lg->pos_x[f+0] - cl->viewport_x,
+          y0 = lg->pos_y[f+0] - cl->viewport_y,
+          x1 = lg->pos_x[f+1] - cl->viewport_x,
+          y1 = lg->pos_y[f+1] - cl->viewport_y;
+      TCOD_line_init(x0, y0, x1, y1);
+      while(!TCOD_line_step(&x0, &y0)) {
+        if(INSIDE_CON(x0, y0)) {
+          TCOD_color_t fc = TCOD_console_get_char_foreground(con, x0, y0),
+                       bc = TCOD_console_get_char_background(con, x0, y0);
+          TCOD_console_set_char_foreground(con, x0, y0, TCOD_color_lerp(fc, lg->color, (float)lg->opacity*(1.f-k/lg->point_count)));
+          TCOD_console_set_char_background(con, x0, y0, TCOD_color_lerp(bc, lg->color, (float)lg->opacity*(1.f-k/lg->point_count)), TCOD_BKGND_SET);
+        }
+        k++;
+      }
+    }
+    l = lg->next;
   }
 }
 
@@ -5836,11 +6143,13 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   BA_Init(gi, argc, argv);
   SMOKE_Init(gi, argc, argv);
   BLOOD_Init(gi, argc, argv);
+  BT_Init(gi, argc, argv);
   FT_Init(gi, argc, argv);
   LI_Init(gi, argc, argv);
   SO_Init(gi, argc, argv);
   FL_Init(gi, argc, argv);
   BE_Init(gi, argc, argv);
+  LG_Init(gi, argc, argv);
   UN_Init(gi, argc, argv);
   PL_Init(gi);
   CL_Init(gi, argc, argv);
@@ -5945,10 +6254,12 @@ void GI_Free(AW_game_instance_t *gi) {
   SO_FreeAll(gi);
   FL_FreeAll(gi);
   BE_FreeAll(gi);
+  BE_FreeAll(gi);
   LI_FreeAll(gi);
   BA_FreeAll(gi);
   SMOKE_FreeAll(gi);
   BLOOD_FreeAll(gi);
+  BT_FreeAll(gi);
   FT_FreeAll(gi);
   RS_FreeAll(gi);
   CS_FreeAll(gi);
@@ -6338,6 +6649,13 @@ void GI_UpdateMiscs(AW_game_instance_t *gi) {
       if(BLOOD_Update(gi, o2))
         BLOOD_Free(gi, o2);
     }
+    AW_burn_trace_ptr bt = gi->burn_trace_head;
+    while(bt != AW_null) {
+      AW_burn_trace_ptr bt2 = bt;
+      bt = burn_trace(bt).next;
+      if(BT_Update(gi, bt2))
+        BT_Free(gi, bt2);
+    }
     AW_floating_text_ptr ft = 
       gi->floating_text_head;
     while(ft != AW_null) {
@@ -6359,6 +6677,13 @@ void GI_UpdateMiscs(AW_game_instance_t *gi) {
       bb = build_explosion(bb).next;
       if(BE_Update(gi, bb2))
         BE_Free(gi, bb2);
+    }
+    AW_lightning_ptr lg = gi->lightning_head;
+    while(lg != AW_null) {
+      AW_lightning_ptr lg2 = lg;
+      lg = lightning(lg).next;
+      if(LG_Update(gi, lg2))
+        LG_Free(gi, lg2);
     }
   }
 }
