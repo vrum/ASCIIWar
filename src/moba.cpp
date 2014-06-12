@@ -464,6 +464,8 @@ void MOBA_InitGame(AW_game_instance_t *gi, game_desc_t *gd) {
   gi->on_spawn_unit_cb                = MOBA_OnSpawnUnit;
   gi->on_cancel_build_cb              = MOBA_OnCancelBuild;
   gi->on_generic_cmd_cb               = MOBA_GenericCmd;
+  gi->draw_pointer_cb                 = MOBA_DrawPointer;
+  gi->draw_cursor_cb                  = MOBA_DrawCursor;
 }
 
 void MOBA_StartGame(AW_game_instance_t *gi) {
@@ -621,7 +623,6 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
   }
   /* orders */
   AW_unit_ptr u;
-  cl->attack_here = true;
   /* middle lane */
   u = pl->unit_head;
   while(u != AW_null) {
@@ -641,6 +642,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-75-6 : 75+6),
           true,
           true,
+          true,
           0,
           (10*10),
           0,
@@ -652,6 +654,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id == 0 ? 112+6 : MAP_SIZE_X-1-112-6), 
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-112-6 : 112+6),
+          true,
           true,
           true,
           0,
@@ -667,6 +670,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-169-6 : 169+6),
           true,
           true,
+          true,
           0,
           (10*10),
           2,
@@ -678,6 +682,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id == 0 ? 225+6 : MAP_SIZE_X-1-225-6), 
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-225-6 : 225+6),
+          true,
           true,
           true,
           0,
@@ -694,6 +699,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-225+6 : 225-6),
           true,
           true,
+          true,
           0,
           (10*10),
           4,
@@ -705,6 +711,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id != 0 ? 169-6 : MAP_SIZE_X-1-169+6), 
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-169+6 : 169-6),
+          true,
           true,
           true,
           0,
@@ -720,6 +727,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-112+6 : 112-6),
           true,
           true,
+          true,
           0,
           (10*10),
           6,
@@ -731,6 +739,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id != 0 ? 75-6 : MAP_SIZE_X-1-75+6), 
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-75+6 : 75-6),
+          true,
           true,
           true,
           0,
@@ -762,6 +771,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-75-6 : 75+6),
           true,
           true,
+          true,
           0,
           (10*10),
           0,
@@ -773,6 +783,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id == 0 ? 33 : MAP_SIZE_X-1-33-1), 
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-150-6 : 150+6),
+          true,
           true,
           true,
           0,
@@ -788,6 +799,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-255-6 : 255+6),
           true,
           true,
+          true,
           0,
           (10*10),
           2,
@@ -799,6 +811,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id == 0 ? 33 : MAP_SIZE_X-1-33-1), 
           (game_desc.local_team_id == 0 ? 150-6 : (MAP_SIZE_Y-1-150)+6),
+          true,
           true,
           true,
           0,
@@ -815,6 +828,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-32 : 32),
           true,
           true,
+          true,
           0,
           (10*10),
           4,
@@ -826,6 +840,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id != 0 ? 255-6 : MAP_SIZE_X-1-255+6),
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-32 : 32),
+          true,
           true,
           true,
           0,
@@ -841,6 +856,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-32 : 32),
           true,
           true,
+          true,
           0,
           (10*10),
           6,
@@ -852,6 +868,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id != 0 ? 75-6 : MAP_SIZE_X-1-75+6),
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-32 : 32),
+          true,
           true,
           true,
           0,
@@ -883,6 +900,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32),
           true,
           true,
+          true,
           0,
           (10*10),
           0,
@@ -894,6 +912,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id == 0 ? 150+6 : MAP_SIZE_X-1-150-6),
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32),
+          true,
           true,
           true,
           0,
@@ -909,6 +928,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32),
           true,
           true,
+          true,
           0,
           (10*10),
           2,
@@ -920,6 +940,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id == 0 ? (MAP_SIZE_X-1-150)+6 : 150-6),
           (game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32),
+          true,
           true,
           true,
           0,
@@ -936,6 +957,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? 150+6 : (MAP_SIZE_Y-1-150)-6),
           true,
           true,
+          true,
           0,
           (10*10),
           4,
@@ -947,6 +969,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           c, 
           (game_desc.local_team_id != 0 ? 33 : MAP_SIZE_X-1-33-1),
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-255+6 : 255-6),
+          true,
           true,
           true,
           0,
@@ -962,6 +985,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-150+6 : 150-6),
           true,
           true,
+          true,
           0,
           (10*10),
           6,
@@ -975,6 +999,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           (game_desc.local_team_id != 0 ? MAP_SIZE_Y-1-75+6 : 75-6),
           true,
           true,
+          true,
           0,
           (10*10),
           7,
@@ -984,8 +1009,6 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
     }
     u = un->pnext;
   }
-  /* end */
-  cl->attack_here = false;
 }
 
 void MOBA_MobsOrderCompletedCB(AW_game_instance_t *gi, AW_unit_ptr u, AW_unit_order_ptr o) {
@@ -1125,19 +1148,67 @@ void MOBA_DeathCB(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr 
 
 short MOBA_GetAbilitiesCount(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type) {
   AW_client_t *cl = &client(c);
+  switch(unit_type) {
+    case AW_unit_type_g:
+      return 1;
+    case AW_unit_type_k:
+      return 1;
+    case AW_unit_type_O:
+      return 1;
+    case AW_unit_type_N:
+      return 2;
+    case AW_unit_type_m:
+      return 1;
+    case AW_unit_type_C:
+      break;
+    case AW_unit_type_G:
+      break;
+    case AW_unit_type_T:
+      break;
+    case AW_unit_type_L:
+      break;
+  }
   return 0;
 }
 
 str MOBA_GetAbilityName(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type, short i) {
   AW_client_t *cl = &client(c);
   switch(unit_type) {
-    case AW_unit_type_C:
+    case AW_unit_type_g:
       switch(i) {
         case 0:
-          return str("(G)oblin [" + i2a(unit_dic[AW_unit_type_g].gold_price) + "*]");
-        case 1:
-          return str("(O)rc [" + i2a(unit_dic[AW_unit_type_O].gold_price) + "*]");
+          return "(A) Attack";
       }
+    case AW_unit_type_k:
+      switch(i) {
+        case 0:
+          return "(A) Attack";
+      }
+    case AW_unit_type_O:
+      switch(i) {
+        case 0:
+          return "(A) Attack";
+      }
+    case AW_unit_type_N:
+      switch(i) {
+        case 0:
+          return "(A) Attack";
+        case 1:
+          return "(k) Awake Skeletons";
+      }
+    case AW_unit_type_m:
+      switch(i) {
+        case 0:
+          return "(A) Attack";
+      }
+    case AW_unit_type_C:
+      break;
+    case AW_unit_type_G:
+      break;
+    case AW_unit_type_T:
+      break;
+    case AW_unit_type_L:
+      break;
   }
   return "";
 }
@@ -1145,45 +1216,94 @@ str MOBA_GetAbilityName(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t 
 char MOBA_GetAbilityShortcut(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type, short i) {
   AW_client_t *cl = &client(c);
   switch(unit_type) {
-    case AW_unit_type_C:
+    case AW_unit_type_g:
       switch(i) {
         case 0:
-          return 'g';
-        case 1:
-          return 'o';
+          return 'A';
       }
+    case AW_unit_type_k:
+      switch(i) {
+        case 0:
+          return 'A';
+      }
+    case AW_unit_type_O:
+      switch(i) {
+        case 0:
+          return 'A';
+      }
+    case AW_unit_type_N:
+      switch(i) {
+        case 0:
+          return 'A';
+        case 1:
+          return 'K';
+      }
+    case AW_unit_type_m:
+      switch(i) {
+        case 0:
+          return 'A';
+      }
+    case AW_unit_type_C:
+      break;
+    case AW_unit_type_G:
+      break;
+    case AW_unit_type_T:
+      break;
+    case AW_unit_type_L:
+      break;
   }
   return 0;
 }
 
-void MOBA_TriggerAbility(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i) {
+bool MOBA_TriggerAbility(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i, short cx, short cy) {
   AW_client_t *cl = &client(c);
-  AW_moba_player_ptr mp = player(GI_GetPlayerPtr(gi, cl->player_id)).user_data;
-  assert(mp != AW_null);
-  AW_moba_player_t *mpl = &moba_player(mp);
   AW_unit_t *un = &unit(u);
   switch(un->unit_type) {
-    /* castle */
-    case AW_unit_type_C:
+    case AW_unit_type_g:
       switch(i) {
-        case 0: {
-            if(mpl->gold >= unit_dic[AW_unit_type_g].gold_price
-            && BO_GetBuildOrderCount(gi, cl->player_id, c, u) < MAX_HUD_CENTRAL_INFO) {
-              mpl->gold -= unit_dic[AW_unit_type_g].gold_price;
-              START_SOUND(coin_sound, 0)
-              CL_CmdBuildOrder(gi, c, un->cmd_id, un->player_id, cl->player_id,AW_unit_type_g, un->pos_x + (game_desc.local_team_id == 0 ? 4 : -4), un->pos_y,false);
-            }
-          } break;
-        case 1: {
-            if(mpl->gold >= unit_dic[AW_unit_type_O].gold_price
-            && BO_GetBuildOrderCount(gi, cl->player_id, c, u) < MAX_HUD_CENTRAL_INFO) {
-              mpl->gold -= unit_dic[AW_unit_type_O].gold_price;
-              START_SOUND(coin_sound, 0)
-              CL_CmdBuildOrder(gi, c, un->cmd_id, un->player_id,cl->player_id,AW_unit_type_O, un->pos_x + (game_desc.local_team_id == 0 ? 4 : -4), un->pos_y,false);
-            }
-          } break;
-      }
+        case 0:
+          TRIGGER_ATTACK
+          break;
+      } break;
+    case AW_unit_type_k:
+      switch(i) {
+        case 0:
+          TRIGGER_ATTACK
+          break;
+      } break;
+    case AW_unit_type_O:
+      switch(i) {
+        case 0:
+          TRIGGER_ATTACK
+          break;
+      } break;
+    case AW_unit_type_N:
+      switch(i) {
+        case 0:
+          TRIGGER_ATTACK
+          break;
+        case 1:
+          ABILITY_HERE {
+            CL_CmdSpawnUnit(gi, c, cx, cy,AW_unit_type_k);
+          }
+          break;
+      } break;
+    case AW_unit_type_m:
+      switch(i) {
+        case 0:
+          TRIGGER_ATTACK
+          break;
+      } break;
+    case AW_unit_type_C:
+      break;
+    case AW_unit_type_G:
+      break;
+    case AW_unit_type_T:
+      break;
+    case AW_unit_type_L:
+      break;
   }
+  return true; /* all units do cast */
 }
 
 void MOBA_HUDInfo(AW_game_instance_t *gi, AW_client_ptr c) {
@@ -1407,20 +1527,25 @@ void MOBA_HUDInfoCastle(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) 
       CL_CmdCancelBuildOrder(gi, c, un->cmd_id, un->player_id, bo->unit_player_id, bo->unit_id);
     }
   }
+  if(cl->hud_state == 0)
+    MOBA_OpenWindow(gi, c, 45, 32);
   if(cl->window_opened
   && cl->hud_state == 1) {
+    TCOD_console_set_default_foreground(con, TCOD_white);
     AW_PrintString("Enroll Units:", (cl->window_start_x+cl->window_end_x)/2-str("Enroll Units:").size()/2, cl->window_start_y+1);
     int i;
     moba_gi.central_hud_btns.btn_count = i = 0;
     moba_gi.central_hud_btns.pos_x     = (cl->window_start_x+cl->window_end_x)/2;
     moba_gi.central_hud_btns.pos_y     = cl->window_start_y+3;
-    DISPLAY_CASTLE_UNIT(chaotic_evil_level1, "(G)oblin", AW_unit_type_g, 'G')
-    DISPLAY_CASTLE_UNIT(chaotic_evil_level1, "(O)gre", AW_unit_type_O, 'O')
+    DISPLAY_CASTLE_UNIT(lawful_evil_level1, "(G) Goblin", AW_unit_type_g, 'G')
+    DISPLAY_CASTLE_UNIT(lawful_evil_level1, "(O) Orc", AW_unit_type_O, 'O')
+    DISPLAY_CASTLE_UNIT(chaotic_evil_level1, "(N) Necromancer", AW_unit_type_N, 'N')
+    DISPLAY_CASTLE_UNIT(chaotic_evil_level1, "(K) Skeleton", AW_unit_type_k, 'K')
     BTN_Render(gi, &moba_gi.central_hud_btns, true, 1); 
     if(BTN_IsClicked(gi, &gi->close_btn)
     || GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
       cl->window_opened = false;
-      GI_StopPropagation(gi, TCODK_ESCAPE);
+      GI_StopKeyPropagation(gi, TCODK_ESCAPE);
     }
     moba_gi.window_switch.color             = TCOD_white;
     moba_gi.window_switch.s                 = "Select Library (TAB)";
@@ -1439,10 +1564,6 @@ void MOBA_HUDInfoCastle(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) 
       cl->hud_state = 1;
     }
   }
-  /* open window? 
-     must be after so the player don't click on a skill at the button-up */
-  if(cl->hud_state == 0)
-    MOBA_OpenWindow(gi, c, 45, 32);
 }
 
 void MOBA_HUDInfoGraveyard(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) {
@@ -1493,8 +1614,11 @@ void MOBA_HUDInfoGraveyard(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr 
 void MOBA_HUDInfoLibrary(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) {
   AW_client_t *cl       = &client(c);
   /* render window */
+  if(cl->hud_state == 0)
+    MOBA_OpenWindow(gi, c, 60, 32);
   if(cl->window_opened
   && cl->hud_state == 1) {
+    TCOD_console_set_default_foreground(con, TCOD_white);
     AW_moba_player_ptr mp = player(GI_GetPlayerPtr(gi, cl->player_id)).user_data;
     assert(mp != AW_null);
     AW_moba_player_t *mpl = &moba_player(mp);
@@ -1518,7 +1642,7 @@ void MOBA_HUDInfoLibrary(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u)
     if(BTN_IsClicked(gi, &gi->close_btn)
     || GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
       cl->window_opened = false;
-      GI_StopPropagation(gi, TCODK_ESCAPE);
+      GI_StopKeyPropagation(gi, TCODK_ESCAPE);
     }
     moba_gi.window_switch.color             = TCOD_white;
     moba_gi.window_switch.s                 = "Select Castle (TAB)";
@@ -1537,28 +1661,28 @@ void MOBA_HUDInfoLibrary(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u)
       cl->hud_state = 1;
     }
   }
-  /* open window? 
-     must be after so the player don't click on a skill at the button-up */
-  if(cl->hud_state == 0)
-    MOBA_OpenWindow(gi, c, 60, 32);
 }
 
 str MOBA_GetUnitName(AW_game_instance_t *gi, AW_unit_type_t unit_type) {
   switch(unit_type) {
     case AW_unit_type_g:
-      return "Goblin   ";
+      return "Goblin      ";
+    case AW_unit_type_k:
+      return "Skeleton    ";
     case AW_unit_type_O:
-      return "Orc      ";
+      return "Orc         ";
+    case AW_unit_type_N:
+      return "Necromancer ";
     case AW_unit_type_m:
-      return "Mob      ";
+      return "Mob         ";
     case AW_unit_type_C:
-      return "Castle  ";
+      return "Castle      ";
     case AW_unit_type_G:
-      return "Graveyard";
+      return "Graveyard   ";
     case AW_unit_type_T:
-      return "Tower    ";
+      return "Tower       ";
     case AW_unit_type_L:
-      return "Library  ";
+      return "Library     ";
   }
   assert(false);
   return "";
@@ -1652,6 +1776,150 @@ void MOBA_OpenWindow(AW_game_instance_t *gi, AW_client_ptr c, int size_x, int si
   cl->window_end_y      = (cl->window_start_y+cl->window_size_y); 
   CL_UpdateWindowCloseButton(gi, c);
   CL_RenderWindow(gi, c);
+  GI_StopClicksPropagation(gi);
+}
+
+void MOBA_DrawPointer(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, short cx, short cy) {
+  AW_client_t *cl = &client(c);
+  switch(unit_type) {
+    case AW_unit_type_g:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          DRAW_ATTACK_POINTER
+          break;
+      } break;
+    case AW_unit_type_k:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          DRAW_ATTACK_POINTER
+          break;
+      } break;
+    case AW_unit_type_O:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          DRAW_ATTACK_POINTER
+          break;
+      } break;
+    case AW_unit_type_N:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          DRAW_ATTACK_POINTER
+          break;
+        case 1:
+          DRAW_ATTACK_POINTER
+          break;
+      } break;
+    case AW_unit_type_m:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          DRAW_ATTACK_POINTER
+          break;
+      } break;
+    case AW_unit_type_C:
+      break;
+    case AW_unit_type_G:
+      break;
+    case AW_unit_type_T:
+      break;
+    case AW_unit_type_L:
+      break;
+  }
+}
+
+void MOBA_DrawCursor(SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, int offx, int offy) {
+  AW_unit_t *un = &unit(u);
+  switch(unit_type) {
+    case AW_unit_type_g:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          MOBA_DrawAttackCursor(surface, gi, c, u, offx, offy);
+          break;
+      } break;
+    case AW_unit_type_k:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          MOBA_DrawAttackCursor(surface, gi, c, u, offx, offy);
+          break;
+      } break;
+    case AW_unit_type_O:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          MOBA_DrawAttackCursor(surface, gi, c, u, offx, offy);
+          break;
+      } break;
+    case AW_unit_type_N:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          MOBA_DrawAttackCursor(surface, gi, c, u, offx, offy);
+          break;
+      } break;
+    case AW_unit_type_m:
+      switch(ability_id) {
+        /* attack */
+        case 0:
+          MOBA_DrawAttackCursor(surface, gi, c, u, offx, offy);
+          break;
+      } break;
+    case AW_unit_type_C:
+      break;
+    case AW_unit_type_G:
+      break;
+    case AW_unit_type_T:
+      break;
+    case AW_unit_type_L:
+      break;
+  }
+}
+
+void MOBA_DrawAttackCursor(SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, int offx, int offy) {
+  AW_client_t *cl = &client(c);
+  AW_unit_t *un = &unit(u);
+  TCOD_color_t color = TCOD_red;
+  color = TCOD_color_multiply_scalar(color, 1.5f);
+  int color_int = COLOR(color);
+  int x, y, size = SCREEN_UNIT_SIZE(un)>>2,
+      b = 4+(MAX_MANA(un) > 0 ? 4 : 0);
+  DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)) {
+    int i = f;
+    DO_TIMES(3) {
+      int j = f;
+      x = SCREEN_UNIT_X(un)+i+size,
+      y = SCREEN_UNIT_Y(un)+b+j;
+      if(INSIDE_SCREEN(x, y)
+      && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+        ON_SCREEN(x, y) = color_int;
+      x = SCREEN_UNIT_X(un)+i+size,
+      y = SCREEN_UNIT_Y(un)+SCREEN_UNIT_SIZE(un)-1-j;
+      if(INSIDE_SCREEN(x, y)
+      && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+        ON_SCREEN(x, y) = color_int;
+    }
+  }
+  DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)-3) {
+    int i = f;
+    DO_TIMES(3) {
+      int j = f;
+      x = SCREEN_UNIT_X(un)+j,
+      y = SCREEN_UNIT_Y(un)+size+b+i;
+      if(INSIDE_SCREEN(x, y)
+      && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+        ON_SCREEN(x, y) = color_int;
+      x = SCREEN_UNIT_X(un)+SCREEN_UNIT_SIZE(un)-1-j,
+      y = SCREEN_UNIT_Y(un)+size+b+i;
+      if(INSIDE_SCREEN(x, y)
+      && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+        ON_SCREEN(x, y) = color_int;
+    }
+  }
 }
 
 /*
@@ -1662,8 +1930,13 @@ AW_moba_game_instance_t moba_gi;
 
 // units.
 AW_ascii_t              little_g[1]   = {'g'},
+                        little_k[2*2] = {0x00 + 0x10d, 0x01 + 0x10d,
+                                         0x10 + 0x10d, 0x11 + 0x10d},
                         big_O[2*2]    = {0x00 + 0xE0 + 0x8, 0x01 + 0xE0 + 0x8,
                                          0x10 + 0xE0 + 0x8, 0x11 + 0xE0 + 0x8},
+                        big_N[3*3]    = {0x00 + 0x10a, 0x01 + 0x10a, 0x02 + 0x10a,
+                                         0x10 + 0x10a, 0x11 + 0x10a, 0x12 + 0x10a,
+                                         0x20 + 0x10a, 0x21 + 0x10a, 0x22 + 0x10a},
                         little_m[2*2] = {0x00 + 0xE0 + 0xB, 0x01 + 0xE0 + 0xB,
                                          0x10 + 0xE0 + 0xB, 0x11 + 0xE0 + 0xB},
                         big_C[8*8]    = {0x00 + 0x80, 0x01 + 0x80, 0x02 + 0x80, 0x03 + 0x80, 0x04 + 0x80, 0x05 + 0x80, 0x06 + 0x80, 0x07 + 0x80,
@@ -1690,13 +1963,15 @@ AW_ascii_t              little_g[1]   = {'g'},
                                         0x40 + 0x104, 0x41 + 0x104, 0x42 + 0x104, 0x43 + 0x104, 0x44 + 0x104, 0x45 + 0x104,
                                         0x50 + 0x104, 0x51 + 0x104, 0x52 + 0x104, 0x53 + 0x104, 0x54 + 0x104, 0x55 + 0x104}; 
 AW_unit_class_t         unit_dic[MAX_UNIT_TYPE] =
- {{50,    10, 10000, 10, 1,  3,    50,    0, 1, 40,   8*8,   5*5,  true, little_g},
-  {100,   10, 10000, 10, 1,  3,    50,  100, 2, 40,   8*8,   5*5,  true, big_O},
-  {25,    10, 10000, 8, 1,   3,    50,    0, 2, 40,   8*8,   3*3,  true, little_m},
-  {800,   10, 10000, 0, 2,  10,  1500,    0, 5, 60, 25*25, 25*25, false, big_T},
-  {1500,  10, 10000, 0, 1,   0,  3500,    0, 6, 80,   8*8,    -1, false, big_L},
-  {1500,  10, 10000, 0, 1,   0,  3500,    0, 4, 80,   8*8,    -1, false, big_G},
-  {5000,  10, 10000, 0, 1,   0,  2250,    0, 8, 80,   8*8,    -1, false, big_C}};
+ {{50,    10, 10000, 10, 1,   3,    50,    0, 1, 40,   8*8,   5*5,  true, little_g},
+  {100,   10, 10000, 10, 1,   3,    50,    0, 2, 40,   8*8,   5*5,  true, little_k},
+  {100,   10, 10000, 10, 1,   3,    50,    0, 2, 40,   8*8,   5*5,  true, big_O},
+  {100,   10, 10000, 10, 1,   3,    50,  100, 3, 40,   8*8,   5*5,  true, big_N},
+  {25,    10, 10000, 8,  1,   3,    50,    0, 2, 40,   8*8,   3*3,  true, little_m},
+  {800,   10, 10000, 0,  2,  10,  1500,    0, 5, 60, 25*25, 25*25, false, big_T},
+  {1500,  10, 10000, 0,  1,   0,  3500,    0, 6, 80,   8*8,    -1, false, big_L},
+  {1500,  10, 10000, 0,  1,   0,  3500,    0, 4, 80,   8*8,    -1, false, big_G},
+  {5000,  10, 10000, 0,  1,   0,  2250,    0, 8, 80,   8*8,    -1, false, big_C}};
   
 
 /*

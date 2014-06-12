@@ -29,20 +29,32 @@
 #define PLAYER_COUNT_PER_TEAM       (1 + /* mobs */ 1)
 
 #define START_HUD_INFO_X            25
-#define START_HUD_INFO_X2           (START_HUD_INFO_X+15)
+#define START_HUD_INFO_X2           (START_HUD_INFO_X+17)
 #define START_HUD_INFO_Y            (HUD_START_Y+2)
 #define START_HUD_LEFT_INFO_X       2
 #define HUD_INFO_SIZE               30
 
 /* this determines the selection order */
 enum AW_moba_unit_type_t {
+  /* goblin */
   AW_unit_type_g = 0,
+  /* skeleton */
+  AW_unit_type_k,
+  /* orcs */
   AW_unit_type_O,
+  /* necromancer */
+  AW_unit_type_N,
+  /* mobs */
   AW_unit_type_m,
+  /* tower */
   AW_unit_type_T,
+  /* library */
   AW_unit_type_L,
+  /* graveyard */
   AW_unit_type_G,
+  /* castle */
   AW_unit_type_C,
+  /* unit type count */
   AW_unit_type_count
 };
 
@@ -130,6 +142,38 @@ enum AW_moba_skills_t {
     assert(mpl->xp >= XP); \
     mpl->xp -= XP; \
     break;
+
+#define ABILITY_HERE \
+    if(cx == -1) { \
+    cl->ability_here = true; \
+    cl->ability_id = i; \
+  } else
+
+#define TRIGGER_ATTACK \
+  if(cx == -1) { \
+    cl->ability_here = true; \
+    cl->ability_id = i; \
+  } else \
+    CL_CmdUnitOrderOnSelection(gi, c, cx, cy, GI_IsKeyPressed2(gi, TCODK_SHIFT), true); \
+  return false;
+
+#define DRAW_ATTACK_POINTER \
+  if(u != AW_null) { \
+    AW_unit_t *un = &unit(u); \
+    AW_id_t team_id = TEAM_ID(un->player_id); \
+    SOCLE(SIZE(un)) { \
+      short cx = un->pos_x+i-cl->viewport_x, \
+            cy = un->pos_y+j-cl->viewport_y; \
+      if(INSIDE_CON(cx, cy)) \
+        TCOD_console_set_char_background( \
+          con, \
+          cx, \
+          cy, \
+          TCOD_dark_red,  \
+          TCOD_BKGND_SET); \
+    } \
+  } else \
+    TCOD_console_set_char_background(con, cx, cy, TCOD_red, TCOD_BKGND_SET);
 
 struct AW_moba_player_t {
   int                 gold,
@@ -292,7 +336,7 @@ void          MOBA_DeathCB                  (AW_game_instance_t *gi, AW_player_p
 short         MOBA_GetAbilitiesCount        (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type);
 str           MOBA_GetAbilityName           (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type, short i);
 char          MOBA_GetAbilityShortcut       (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type, short i);
-void          MOBA_TriggerAbility           (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i);
+bool          MOBA_TriggerAbility           (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i, short cx, short cy);
 void          MOBA_HUDInfo                  (AW_game_instance_t *gi, AW_client_ptr c);
 void          MOBA_HUDInfoMultipleSelection (AW_game_instance_t *gi, AW_client_ptr c, int selected_units_count);
 void          MOBA_HUDInfoCastle            (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
@@ -305,6 +349,9 @@ void          MOBA_GenericCmd               (AW_game_instance_t *gi, AW_id_t id,
 AW_unit_ptr   MOBA_GetCastle                (AW_game_instance_t *gi, AW_client_ptr c);
 AW_unit_ptr   MOBA_GetLibrary               (AW_game_instance_t *gi, AW_client_ptr c);
 void          MOBA_OpenWindow               (AW_game_instance_t *gi, AW_client_ptr c, int size_x, int size_y);
+void          MOBA_DrawPointer              (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, short cx, short cy);
+void          MOBA_DrawCursor               (SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, int offx, int offy);
+void          MOBA_DrawAttackCursor         (SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, int offx, int offy);
 
 extern AW_moba_game_instance_t moba_gi;
 

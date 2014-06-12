@@ -95,7 +95,7 @@ typedef string str;
 #define MAX_AVER_WAIT_TIMES 				1
 #define MAX_MAX_PING_TIMES 					100	
 #define MAX_FRAME_TIME 							(MAX_TURN_FRAME_COUNT*NORMAL_TIME_STEP)							
-#define ZLIB_CHUNK									(1<<18)
+#define ZLIB_CHUNK									(1<<18) /* 256Kb */
 #define MAX_CHAR  									64
 #define SMALL_SIZE									32
 #define AW_null 										-1
@@ -284,7 +284,7 @@ typedef string str;
 #define RED 							TCOD_color_RGB(240, 29, 29)
 #define BLOOD_COLOR 			TCOD_color_RGB(195, 25, 12)
 #define BURN_TRACE_COLOR 	TCOD_color_RGB(45, 45, 45)
-#define FLUID_COLOR 			TCOD_color_RGB(150, 200, 255)
+#define FLUID_COLOR 			TCOD_color_RGB(210, 210, 210)
 #define LIGHTNING_COLOR 	TCOD_color_RGB(150, 200, 255)
 
 #define	AW_EMPTY 		'.' 	
@@ -378,6 +378,8 @@ struct AW_unit_order_t {
 													task_id;
 	short 									target_cx,
 													target_cy,
+													click_cx,
+													click_cy,
 													chase_cx_proxy,
 													chase_cy_proxy,
 													path_len_proxy,
@@ -396,7 +398,8 @@ struct AW_unit_order_t {
 													with_counter,
 													attack_here,
 													precise_target,
-													following_friend;
+													following_friend,
+													generated;
 	AW_ptr_t 								user_data;
 	AW_unit_order_cb_t 			unit_order_completed_cb,
 													unit_order_failed_cb;
@@ -713,6 +716,37 @@ void 										LG_Compute 			(AW_game_instance_t *gi, AW_lightning_ptr l);
 void 										LG_BuildPoints	(AW_game_instance_t *gi, AW_lightning_ptr l, int x0, int y0, int x1, int y1, int i, int j, int level);
 
 /*
+ * status_effects
+ */
+
+#define MAX_STATUS_EFFECT 			4096
+#define status_effect(ptr)			(gi->status_effects[(ptr)])
+#define STATUS_EFFECT_SPAN_INIT(S, P) case S: status_effect(r).span = P; break; 
+#define INVOCATION_FATE_SPAN 		99999999
+#define INVOCATION_FATE_RATE		1
+typedef short AW_status_effect_ptr;
+
+enum AW_status_effect_type_t {
+	/* lose health points */
+	AW_status_effect_invocation_fate,
+};
+
+struct AW_status_effect_t {
+	AW_status_effect_type_t 	type;
+	int 											amount;
+	AW_time_t 								span;
+	AW_status_effect_ptr			next,
+														previous,
+														fnext;
+};
+
+void 									ST_Init					(AW_game_instance_t *gi, int argc, char** argv);
+AW_status_effect_ptr 	ST_New					(AW_game_instance_t *gi, AW_unit_ptr u);
+void 									ST_Free					(AW_game_instance_t *gi, AW_unit_ptr u, AW_status_effect_ptr l);
+void 									ST_FreeAll 			(AW_game_instance_t *gi, AW_unit_ptr u, AW_status_effect_ptr l);
+void 									ST_Update 			(AW_game_instance_t *gi, AW_unit_ptr u);
+
+/*
  * build order
  */
 
@@ -795,6 +829,7 @@ struct AW_unit_t {
 													chase_cx,
 													chase_cy,
 													push_power;
+	AW_status_effect_ptr 		status_effect_head;
 	AW_unit_ptr							fnext,			/* free */
 													previous,		/* in use */
 													next,
@@ -857,7 +892,9 @@ struct AW_unit_order_packet_t {
   int 									turn;
   short 			 					r_squared,
   											target_cx,
-  											target_cy;
+  											target_cy,
+  											click_cx,
+  											click_cy;
   AW_id_t 							target,
   											target_player_id,
 												target_cmd_id;
@@ -943,6 +980,8 @@ struct AW_cmd_t {
 													cmd_next;
 	short 									target_cx, 
 													target_cy,
+													click_cx, 
+													click_cy,
 													r_squared,
 													turn_frame_count;
 	AW_id_t 								target,
@@ -1048,14 +1087,16 @@ struct AW_client_t {
 										pointing_minimap;
 	int 							mp_lb_x, mp_lb_y,
 										mr_lb_x, mr_lb_y;
-	bool 							attack_here,
+	bool 							ability_here,
 										window_opened;
+	short 						ability_id;
 	int 							window_start_x,
 										window_start_y,
 										window_size_x,
 										window_size_y,
 										window_end_x,
 										window_end_y;
+	short 						selected_gs;
 	ENetHost 					*host;
 	ENetPeer					*peer;
 	ENetAddress 			address,
@@ -1078,6 +1119,7 @@ void 						CL_UpdateHUD									(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderPointer							(AW_game_instance_t *gi, AW_client_ptr c, short x, short y, bool and_unit);
 void 						CL_RenderCursor								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderSelection						(AW_game_instance_t *gi, AW_client_ptr c);
+void 						CL_RenderSelectedUnitTargets	(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderSmokes								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBlood								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_RenderBurnTrace						(AW_game_instance_t *gi, AW_client_ptr c);
@@ -1105,12 +1147,13 @@ void 						CL_AddToGroupSelection				(AW_game_instance_t *gi, AW_client_ptr c, A
 void 						CL_CopySelectionTo 						(AW_game_instance_t *gi, AW_client_ptr c, int gs);
 void 						CL_RestoreGroupSelection			(AW_game_instance_t *gi, AW_client_ptr c, int gs);
 void 						CL_SelectNextSubGroup 				(AW_game_instance_t *gi, AW_client_ptr c);
-void 						CL_CmdUnitOrderOnSelection		(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, bool push_back, bool ground_only=false, AW_id_t cmd_mask=-1, int r_squared=-1, AW_ptr_t user_data=AW_null, AW_unit_order_cb_t unit_order_completed_cb=null, AW_unit_order_cb_t unit_order_failed_cb=null);
+void 						CL_CmdUnitOrderOnSelection		(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, bool push_back, bool attack_here, bool ground_only=false, AW_id_t cmd_mask=-1, int r_squared=-1, AW_ptr_t user_data=AW_null, AW_unit_order_cb_t unit_order_completed_cb=null, AW_unit_order_cb_t unit_order_failed_cb=null);
 void 						CL_CmdSpawnUnit								(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, AW_unit_type_t unit_type, AW_ptr_t user_data=AW_null);
 void 						CL_CmdBuildOrder 							(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t builder_id, AW_id_t builder_player_id, AW_id_t unit_player_id, AW_unit_type_t unit_type, short target_cx, short target_cy, bool start_it);
 void 						CL_CmdCancelBuildOrder 				(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t builder_id, AW_id_t builder_player_id, AW_id_t unit_player_id, AW_id_t unit_id);
 void 						CL_CmdGeneric 								(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
 bool 						CL_HasOrder 									(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
+void 						CL_FocusOnUnits								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_UpdateWindowCloseButton		(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_OpenOptionWindow						(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_UpdateOptionWindow					(AW_game_instance_t *gi, AW_client_ptr c);
@@ -1244,12 +1287,12 @@ DWORD WINAPI  			PL_WorkerFun 									(void *params);
  	GI_ListenMasterServer(gi, &e);
 
 struct game_desc_t {
-	str 									master_server;
-	str  									game_name;
-	short 								player_count_per_team,
-												team_count;
-	AW_id_t 							local_player_id,
-												local_team_id;					 
+	str 							master_server;
+	str  							game_name;
+	short 						player_count_per_team,
+										team_count;
+	AW_id_t 					local_player_id,
+										local_team_id;					 
 };
 
 typedef void 	(*AW_free_all_cb_t)(AW_game_instance_t *gi);
@@ -1259,12 +1302,14 @@ typedef void 	(*AW_update_client_cb_t)(AW_game_instance_t *gi, AW_client_ptr c);
 typedef short (*AW_get_abilities_count_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type);
 typedef str 	(*AW_get_ability_name_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i);
 typedef char 	(*AW_get_ability_shortcut_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i);
-typedef void 	(*AW_trigger_ability_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i);
+typedef bool 	(*AW_trigger_ability_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i, short cx, short cy);
 typedef void  (*AW_hud_info_cb_t)(AW_game_instance_t *gi, AW_client_ptr c);
 typedef void 	(*AW_on_death_cb_t)(AW_game_instance_t *, AW_player_ptr, AW_player_ptr, AW_unit_ptr);
 typedef void 	(*AW_on_spawn_unit_cb_t)(AW_game_instance_t *gi, AW_unit_ptr u);
 typedef void 	(*AW_on_cancel_build_cb_t)(AW_game_instance_t *gi, AW_build_order_ptr b);
 typedef void 	(*AW_on_generic_cmd_cb_t)(AW_game_instance_t *gi, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+typedef void  (*AW_draw_pointer_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t type, int ability_id, short cx, short cy);
+typedef void  (*AW_draw_cursor_cb_t)(SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t type, int ability_id, int offx, int offy);
 
 enum AW_peer_message_type_t {
 	AW_peer_message_cmd_pack = 1
@@ -1353,6 +1398,8 @@ struct AW_game_instance_t {
 	AW_lightning_t 									lightnings[MAX_LIGHTNING];
 	AW_lightning_ptr 								free_lightning_head;
 	AW_lightning_ptr 								lightning_head;
+	AW_status_effect_t 							status_effects[MAX_STATUS_EFFECT];
+	AW_status_effect_ptr 						free_status_effect_head;
 	AW_unit_t 											units[MAX_UNIT];
 	AW_unit_ptr 										free_unit_head;
 	AW_unit_ptr 										unit_head;
@@ -1427,8 +1474,8 @@ struct AW_game_instance_t {
   																render_spec;
   /* callbacks */
   AW_free_all_cb_t 								free_all_cb; 				
-  AW_update_client_cb_t update_client_cb;
-  AW_on_death_cb_t 									on_death_cb;			
+  AW_update_client_cb_t 					update_client_cb;
+  AW_on_death_cb_t 								on_death_cb;			
   AW_get_abilities_count_cb_t 		get_abilities_count_cb;
   AW_get_ability_name_cb_t 				get_ability_name_cb;
   AW_get_ability_shortcut_cb_t 		get_ability_shortcut_cb;
@@ -1437,6 +1484,8 @@ struct AW_game_instance_t {
   AW_on_spawn_unit_cb_t 					on_spawn_unit_cb;
   AW_on_cancel_build_cb_t 				on_cancel_build_cb;
   AW_on_generic_cmd_cb_t 					on_generic_cmd_cb;
+  AW_draw_pointer_cb_t 						draw_pointer_cb;
+  AW_draw_cursor_cb_t 						draw_cursor_cb;
 	/* ui */
 	AW_btn_t 												refresh_btn,
 																	ready_btn,
@@ -1477,7 +1526,8 @@ void 							GI_UpdateInputs 									(AW_game_instance_t *gi);
 bool 							GI_IsKeyReleased 									(AW_game_instance_t *gi, TCOD_keycode_t k, char c = -1, int ctrl=-1);
 bool 							GI_IsKeyPressed 									(AW_game_instance_t *gi, TCOD_keycode_t k, char c = -1, int ctrl=-1);
 bool 							GI_IsKeyPressed2 									(AW_game_instance_t *gi, TCOD_keycode_t k);
-void 							GI_StopPropagation								(AW_game_instance_t *gi, TCOD_keycode_t k, char c = -1);
+void 							GI_StopKeyPropagation							(AW_game_instance_t *gi, TCOD_keycode_t k, char c = -1);
+void 							GI_StopClicksPropagation					(AW_game_instance_t *gi);
 bool 							GI_InState 												(AW_game_instance_t *gi, AW_state_t st);
 void 							GI_AddState												(AW_game_instance_t *gi, AW_state_t st);
 void 							GI_RemoveState										(AW_game_instance_t *gi, AW_state_t st);

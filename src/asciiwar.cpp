@@ -146,6 +146,7 @@ AW_unit_order_ptr UO_New(AW_game_instance_t *gi) {
     uo->precise_target          = true;
     uo->with_counter            = false;
     uo->following_friend        = false;
+    uo->generated               = true; /* most are */
     uo->time_stamp              = -1;
     uo->last_target_cx          = -1;
     uo->counter                 = 0;
@@ -312,11 +313,6 @@ bool BA_Update(AW_game_instance_t *gi, AW_ball_ptr b) {
         if(target_un->hp <= 0) {
           assert(target_un->hp == 0);
           PL_KillUnit(gi, ba->p, target_p, ba->target);
-          AW_blood_ptr o = BLOOD_New(gi);
-          if(o != AW_null) {
-            blood(o).pos_x = target_un->pos_x+(rand()%3)-1;
-            blood(o).pos_y = target_un->pos_y+(rand()%3)-1;
-          }
         }
         AW_smoke_ptr s = SMOKE_New(gi);
         if(s != AW_null) {
@@ -1268,6 +1264,78 @@ void LG_BuildPoints(AW_game_instance_t *gi, AW_lightning_ptr l, int x0, int y0, 
 }
 
 /*
+ * status_effects
+ */
+
+void ST_Init(AW_game_instance_t *gi, int argc, char** argv) {
+  // create status_effects.
+  for(int i = 0; i < MAX_STATUS_EFFECT; i++) {
+    if(i != MAX_STATUS_EFFECT-1)
+      status_effect(i).fnext = i+1;
+    else
+      status_effect(i).fnext = AW_null;
+  }
+  gi->free_status_effect_head = 0;
+  trace("status_effects initiated.");
+}
+
+AW_status_effect_ptr ST_New(AW_game_instance_t *gi, AW_unit_ptr u, AW_status_effect_type_t type) {
+  if(gi->free_status_effect_head != AW_null) {
+    AW_unit_t *un                     = &unit(u);
+    AW_status_effect_ptr r            = gi->free_status_effect_head;
+    gi->free_status_effect_head       = status_effect(gi->free_status_effect_head).fnext;
+    status_effect(r).previous         = AW_null;
+    status_effect(r).next             = un->status_effect_head;
+    status_effect(r).type             = type;
+    switch(type) {
+      STATUS_EFFECT_SPAN_INIT(AW_status_effect_invocation_fate, INVOCATION_FATE_SPAN)
+    }
+    if(un->status_effect_head != AW_null)
+      status_effect(un->status_effect_head).previous = r;
+    un->status_effect_head = r;
+    return r;
+  }
+  trace("No more status_effect left.");
+  return AW_null;
+}
+
+void ST_Free(AW_game_instance_t *gi, AW_unit_ptr u, AW_status_effect_ptr l) {
+  AW_unit_t *un = &unit(u);
+  if(un->status_effect_head == l)
+    un->status_effect_head = status_effect(l).next;
+  if(status_effect(l).previous != AW_null)
+    status_effect(status_effect(l).previous).next = status_effect(l).next;
+  if(status_effect(l).next != AW_null)
+    status_effect(status_effect(l).next).previous = status_effect(l).previous;
+  status_effect(l).fnext = gi->free_status_effect_head;
+  gi->free_status_effect_head = l;
+}
+
+void ST_FreeAll(AW_game_instance_t *gi, AW_unit_ptr u) {
+  AW_unit_t *un = &unit(u);
+  while(un->status_effect_head != AW_null)
+    ST_Free(gi, u, un->status_effect_head);
+}
+
+void ST_Update(AW_game_instance_t *gi, AW_unit_ptr u) {
+  AW_unit_t *un = &unit(u);
+  AW_status_effect_ptr s = un->status_effect_head;
+  while(s != AW_null) {
+    AW_status_effect_t *st = &status_effect(s);
+    switch(st->type) {
+      #include "status_effect.cpp"
+    }
+    st->span -= gi->game_time_step;
+    if(st->span <= 0) {
+      AW_status_effect_ptr s2 = s;
+      s = st->next;
+      ST_Free(gi, u, s2);
+    } else
+      s = st->next;
+  }
+}
+
+/*
  * build order
  */
 
@@ -1412,6 +1480,7 @@ AW_unit_ptr UN_New(AW_game_instance_t *gi) {
       un->gsprevious[f] = AW_null;
       un->gsnext[f] = AW_null;
     }
+    un->status_effect_head = AW_null;
     un->pprevious       = AW_null;
     un->pnext           = AW_null;
     un->previous        = AW_null;
@@ -1429,6 +1498,7 @@ AW_unit_ptr UN_New(AW_game_instance_t *gi) {
 void UN_Free(AW_game_instance_t *gi, AW_unit_ptr u) {
   BO_FreeAll(gi, u);
   UO_FreeAll(gi, u);
+  ST_FreeAll(gi, u);
   if(gi->unit_head == u)
     gi->unit_head = unit(u).next;
   if(unit(u).previous != AW_null)
@@ -1860,6 +1930,8 @@ void RS_Leech(AW_game_instance_t *gi, AW_remote_cmd_store_ptr r) {
                   cmd->r_squared        = data->r_squared;
                   cmd->target_cx        = data->target_cx;
                   cmd->target_cy        = data->target_cy;
+                  cmd->click_cx         = data->click_cx;
+                  cmd->click_cy         = data->click_cy;
                   cmd->target           = data->target;
                   cmd->target_player_id = data->target_player_id;
                   cmd->target_cmd_id    = data->target_cmd_id;
@@ -1970,7 +2042,7 @@ AW_client_ptr CL_New(AW_game_instance_t *gi, AW_cmd_store_ptr cs) {
     gi->free_client_head    = client(gi->free_client_head).fnext;
     client(r).selected_units_head  = AW_null;
     client(r).cmd_id              = 0;
-    client(r).attack_here         = false;
+    client(r).ability_here        = false;
     client(r).cs                  = cs;
     client(r).previous            = AW_null;
     client(r).peer                = null;
@@ -1981,6 +2053,7 @@ AW_client_ptr CL_New(AW_game_instance_t *gi, AW_cmd_store_ptr cs) {
     client(r).selected_sub_group  = -1;
     client(r).hud_state           = 0;
     client(r).window_opened       = false;
+    client(r).selected_gs         = -1;
     DO_TIMES(MAX_GROUP_SELECTION) {
       client(r).gs_head[f] = AW_null;
       client(r).gs_sub_group[f] = -1;
@@ -2116,6 +2189,8 @@ void CL_Seed(AW_game_instance_t *gi, AW_client_ptr c) {
                 data.r_squared        = cmd->r_squared;
                 data.target_cx        = cmd->target_cx;
                 data.target_cy        = cmd->target_cy;
+                data.click_cx         = cmd->click_cx;
+                data.click_cy         = cmd->click_cy;
                 data.target           = cmd->target;
                 data.target_player_id = cmd->target_player_id;
                 data.target_cmd_id    = cmd->target_cmd_id;
@@ -2244,6 +2319,7 @@ void CL_Update(AW_game_instance_t *gi, AW_client_ptr c) {
     SO_Update(gi, c);
     CL_RenderSmokes(gi, c);
     CL_RenderEnvMap(gi, c);
+    CL_RenderSelectedUnitTargets(gi, c);
     CL_RenderUnits(gi, c);
     CL_RenderBlood(gi, c);
     CL_RenderBurnTrace(gi, c);
@@ -2308,18 +2384,17 @@ void CL_EndOfTurn(AW_game_instance_t *gi, AW_client_ptr c) {
   CL_Seed(gi, c);
 }
 
-int bob = 0;
 void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
   AW_client_t *cl = &client(c);
   AW_player_ptr cl_p = GI_GetPlayerPtr(gi, cl->player_id);
   AW_player_t *cl_pl = &player(cl_p);
   if(gi->lbtn_down
-  && !cl->attack_here
+  && !cl->ability_here
   && !cl->selection_started
   && INSIDE_MINI(gi->mouse.cx, gi->mouse.cy))
     cl->pointing_minimap = true;
   if(gi->lbtn_down
-  && !cl->attack_here
+  && !cl->ability_here
   && !cl->selection_started
   && cl->pointing_minimap) {
     cl->viewport_x = (gi->mouse.x-MINIMAP_START_X)*MINIMAP_INV_RATIO_X-CON_RES_X/2;
@@ -2342,85 +2417,85 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
   BOUND_VIEWPORT
   /* restore selection */
   if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '&', 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '1', 0)
-  || GI_IsKeyPressed(gi, TCODK_1, -1, 0))
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '1', 0)
+  || GI_IsKeyReleased(gi, TCODK_1, -1, 0))
     CL_RestoreGroupSelection(gi, c, 0);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -23, 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '2', 0)
-  || GI_IsKeyPressed(gi, TCODK_2, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -23, 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '2', 0)
+  || GI_IsKeyReleased(gi, TCODK_2, -1, 0))
     CL_RestoreGroupSelection(gi, c, 1);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '\"', 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '3', 0)
-  || GI_IsKeyPressed(gi, TCODK_3, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '\"', 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '3', 0)
+  || GI_IsKeyReleased(gi, TCODK_3, -1, 0))
     CL_RestoreGroupSelection(gi, c, 2);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '\'', 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '4', 0)
-  || GI_IsKeyPressed(gi, TCODK_4, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '\'', 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '4', 0)
+  || GI_IsKeyReleased(gi, TCODK_4, -1, 0))
     CL_RestoreGroupSelection(gi, c, 3);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '(', 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '5', 0)
-  || GI_IsKeyPressed(gi, TCODK_5, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '(', 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '5', 0)
+  || GI_IsKeyReleased(gi, TCODK_5, -1, 0))
     CL_RestoreGroupSelection(gi, c, 4);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '-', 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '6', 0)
-  || GI_IsKeyPressed(gi, TCODK_6, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '-', 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '6', 0)
+  || GI_IsKeyReleased(gi, TCODK_6, -1, 0))
     CL_RestoreGroupSelection(gi, c, 5);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -15, 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '7', 0)
-  || GI_IsKeyPressed(gi, TCODK_7, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -15, 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '7', 0)
+  || GI_IsKeyReleased(gi, TCODK_7, -1, 0))
     CL_RestoreGroupSelection(gi, c, 6);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '_', 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '8', 0)
-  || GI_IsKeyPressed(gi, TCODK_8, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '_', 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '8', 0)
+  || GI_IsKeyReleased(gi, TCODK_8, -1, 0))
     CL_RestoreGroupSelection(gi, c, 7);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -25, 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '9', 0)
-  || GI_IsKeyPressed(gi, TCODK_9, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -25, 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '9', 0)
+  || GI_IsKeyReleased(gi, TCODK_9, -1, 0))
     CL_RestoreGroupSelection(gi, c, 8);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -20, 0)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '0', 0)
-  || GI_IsKeyPressed(gi, TCODK_0, -1, 0))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -20, 0)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '0', 0)
+  || GI_IsKeyReleased(gi, TCODK_0, -1, 0))
     CL_RestoreGroupSelection(gi, c, 9);
   /* copy selection to group */
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '&', 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '1', 1)
-  || GI_IsKeyPressed(gi, TCODK_1, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '&', 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '1', 1)
+  || GI_IsKeyReleased(gi, TCODK_1, -1, 1))
     CL_CopySelectionTo(gi, c, 0);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -23, 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '2', 1)
-  || GI_IsKeyPressed(gi, TCODK_2, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -23, 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '2', 1)
+  || GI_IsKeyReleased(gi, TCODK_2, -1, 1))
     CL_CopySelectionTo(gi, c, 1);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '\"', 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '3', 1)
-  || GI_IsKeyPressed(gi, TCODK_3, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '\"', 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '3', 1)
+  || GI_IsKeyReleased(gi, TCODK_3, -1, 1))
     CL_CopySelectionTo(gi, c, 2);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '\'', 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '4', 1)
-  || GI_IsKeyPressed(gi, TCODK_4, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '\'', 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '4', 1)
+  || GI_IsKeyReleased(gi, TCODK_4, -1, 1))
     CL_CopySelectionTo(gi, c, 3);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '(', 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '5', 1)
-  || GI_IsKeyPressed(gi, TCODK_5, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '(', 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '5', 1)
+  || GI_IsKeyReleased(gi, TCODK_5, -1, 1))
     CL_CopySelectionTo(gi, c, 4);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '-', 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '6', 1)
-  || GI_IsKeyPressed(gi, TCODK_6, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '-', 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '6', 1)
+  || GI_IsKeyReleased(gi, TCODK_6, -1, 1))
     CL_CopySelectionTo(gi, c, 5);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -15, 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '7', 1)
-  || GI_IsKeyPressed(gi, TCODK_7, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -15, 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '7', 1)
+  || GI_IsKeyReleased(gi, TCODK_7, -1, 1))
     CL_CopySelectionTo(gi, c, 6);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, '_', 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '8', 1)
-  || GI_IsKeyPressed(gi, TCODK_8, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, '_', 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '8', 1)
+  || GI_IsKeyReleased(gi, TCODK_8, -1, 1))
     CL_CopySelectionTo(gi, c, 7);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -25, 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '9', 1)
-  || GI_IsKeyPressed(gi, TCODK_9, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -25, 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '9', 1)
+  || GI_IsKeyReleased(gi, TCODK_9, -1, 1))
     CL_CopySelectionTo(gi, c, 8);
-  if(/*GI_IsKeyPressed(gi, TCODK_CHAR, -20, 1)
-  || */GI_IsKeyPressed(gi, TCODK_CHAR, '0', 1)
-  || GI_IsKeyPressed(gi, TCODK_0, -1, 1))
+  if(/*GI_IsKeyReleased(gi, TCODK_CHAR, -20, 1)
+  || */GI_IsKeyReleased(gi, TCODK_CHAR, '0', 1)
+  || GI_IsKeyReleased(gi, TCODK_0, -1, 1))
     CL_CopySelectionTo(gi, c, 9);
   if(!cl_pl->lose && !cl_pl->win && !cl->window_opened) {
     if(gi->lbtn_down 
@@ -2436,7 +2511,7 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
       cl->mr_lb_x = gi->mouse.cx+cl->viewport_x;
       cl->mr_lb_y = gi->mouse.cy+cl->viewport_y;
       cl->selection_started = false;
-      if(!cl->attack_here
+      if(!cl->ability_here
       && CL_IsThereUnitsHere(gi, c, cl->mp_lb_x, cl->mp_lb_y, cl->mr_lb_x, cl->mr_lb_y)) {
         if(!GI_IsKeyPressed2(gi, TCODK_SHIFT))
           CL_FreeUnitSelection(gi, c);
@@ -2499,30 +2574,29 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
           gi->mouse.cy+cl->viewport_y,
           AW_unit_type_O);
     if(gi->lbtn_up
-    && cl->attack_here) {
-      if(INSIDE_MINI(gi->mouse.cx, gi->mouse.cy))
-        CL_CmdUnitOrderOnSelection(
-          gi, 
-          c, 
-          (gi->mouse.x-MINIMAP_START_X)*MINIMAP_INV_RATIO_X, 
-          (gi->mouse.y-MINIMAP_START_Y)*MINIMAP_INV_RATIO_Y,
-          GI_IsKeyPressed2(gi, TCODK_SHIFT));
-      else
-      if(INSIDE_CON(gi->mouse.cx, gi->mouse.cy))
-        CL_CmdUnitOrderOnSelection(
-          gi, 
-          c, 
-          gi->mouse.cx+cl->viewport_x, 
-          gi->mouse.cy+cl->viewport_y,
-          GI_IsKeyPressed2(gi, TCODK_SHIFT));
-      cl->attack_here = false;
+    && cl->ability_here) {
+      if(gi->trigger_ability_cb) {
+        AW_unit_ptr u = cl->selected_units_head;
+        while(u != AW_null
+           && unit(u).unit_type >= cl->selected_sub_group) {
+          if(unit(u).unit_type == cl->selected_sub_group) {
+            if(INSIDE_MINI(gi->mouse.cx, gi->mouse.cy)) {
+              if(!gi->trigger_ability_cb(gi, c, u, cl->ability_id, (gi->mouse.x-MINIMAP_START_X)*MINIMAP_INV_RATIO_X, (gi->mouse.y-MINIMAP_START_Y)*MINIMAP_INV_RATIO_Y))
+                break;
+            } else
+            if(INSIDE_CON(gi->mouse.cx, gi->mouse.cy)) {
+              if(!gi->trigger_ability_cb(gi, c, u, cl->ability_id, gi->mouse.cx+cl->viewport_x, gi->mouse.cy+cl->viewport_y))
+                break;
+            }
+          }
+          u = unit(u).snext[c];
+        }
+      }
+      cl->ability_here = false;
     }
-    if(GI_IsKeyReleased(gi, TCODK_CHAR, 'a')
-    || GI_IsKeyReleased(gi, TCODK_CHAR, 'q'))
-      cl->attack_here = true;
     if(gi->rbtn_up) {
-      if(cl->attack_here)
-        cl->attack_here = false;
+      if(cl->ability_here)
+        cl->ability_here = false;
       else
         if(INSIDE_MINI(gi->mouse.cx, gi->mouse.cy))
           CL_CmdUnitOrderOnSelection(
@@ -2530,7 +2604,8 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
             c, 
             (gi->mouse.x-MINIMAP_START_X)*MINIMAP_INV_RATIO_X, 
             (gi->mouse.y-MINIMAP_START_Y)*MINIMAP_INV_RATIO_Y,
-            GI_IsKeyPressed2(gi, TCODK_SHIFT));
+            GI_IsKeyPressed2(gi, TCODK_SHIFT),
+            false);
         else
         if(INSIDE_CON(gi->mouse.cx, gi->mouse.cy))
           CL_CmdUnitOrderOnSelection(
@@ -2538,7 +2613,8 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
             c, 
             gi->mouse.cx+cl->viewport_x, 
             gi->mouse.cy+cl->viewport_y,
-            GI_IsKeyPressed2(gi, TCODK_SHIFT));
+            GI_IsKeyPressed2(gi, TCODK_SHIFT),
+            false);
     }
     if(GI_IsKeyReleased(gi, TCODK_TAB))
       CL_SelectNextSubGroup(gi, c);
@@ -2602,7 +2678,7 @@ void CL_UpdateHUD(AW_game_instance_t *gi, AW_client_ptr c) {
         while(u != AW_null
            && unit(u).unit_type >= cl->selected_sub_group) {
           if(unit(u).unit_type == cl->selected_sub_group)
-            gi->trigger_ability_cb(gi, c, u, f);
+            gi->trigger_ability_cb(gi, c, u, f, -1, -1);
           u = unit(u).snext[c];
         }
       }
@@ -2624,33 +2700,37 @@ void CL_RenderPointer(AW_game_instance_t *gi, AW_client_ptr c, short x, short y,
     if(INSIDE_MAP(x+cl->viewport_x, y+cl->viewport_y)
     && vis)
       u = AT(unit_map, x+cl->viewport_x, y+cl->viewport_y);
-    if(u != AW_null) {
-      if(and_unit) {
-        AW_unit_t *un = &unit(u);
-        AW_id_t team_id = TEAM_ID(un->player_id);
-        TCOD_color_t c = 
-          cl->attack_here ? TCOD_red : 
-          un->player_id == game_desc.local_player_id ? TCOD_blue : 
-          team_id == cl_pl->team_id ? TCOD_light_blue : TCOD_red;
-        SOCLE(SIZE(un)) {
-          short cx = un->pos_x+i-cl->viewport_x,
-                cy = un->pos_y+j-cl->viewport_y;
-          if(INSIDE_CON(cx, cy))
-            TCOD_console_set_char_background(
-              con, 
-              cx, 
-              cy, 
-              c, 
-              TCOD_BKGND_SET);
-        }
-      }
+    if(cl->ability_here) {
+      if(gi->draw_pointer_cb)
+        gi->draw_pointer_cb(gi, c, u, cl->selected_sub_group, cl->ability_id, x, y);
     } else {
-      TCOD_console_set_char_background(
-        con, 
-        x, 
-        y, 
-        cl->attack_here ? TCOD_red : TCOD_blue, 
-        TCOD_BKGND_SET);
+      if(u != AW_null) {
+        if(and_unit) {
+          AW_unit_t *un = &unit(u);
+          AW_id_t team_id = TEAM_ID(un->player_id);
+          TCOD_color_t c =  
+            un->player_id == game_desc.local_player_id ? TCOD_blue : 
+            team_id == cl_pl->team_id ? TCOD_light_blue : TCOD_red;
+          SOCLE(SIZE(un)) {
+            short cx = un->pos_x+i-cl->viewport_x,
+                  cy = un->pos_y+j-cl->viewport_y;
+            if(INSIDE_CON(cx, cy))
+              TCOD_console_set_char_background(
+                con, 
+                cx, 
+                cy, 
+                c, 
+                TCOD_BKGND_SET);
+          }
+        }
+      } else {
+        TCOD_console_set_char_background(
+          con, 
+          x, 
+          y, 
+          TCOD_blue, 
+          TCOD_BKGND_SET);
+      }
     }
   }
 }
@@ -2674,6 +2754,45 @@ void CL_RenderSelection(AW_game_instance_t *gi, AW_client_ptr c) {
     FOR_RECT(s_cx, e_cx, s_cy, e_cy)
       if(INSIDE_MAP(i, j)) 
         CL_RenderPointer(gi, c, i-cl->viewport_x, j-cl->viewport_y, true);
+  }
+}
+
+void CL_RenderSelectedUnitTargets(AW_game_instance_t *gi, AW_client_ptr c) {
+  AW_client_t *cl = &client(c);
+  short pos_x = 0,
+        pos_y = 0,
+        k = 0;
+  bool attack_here = true;
+  AW_unit_ptr u = cl->selected_units_head;
+  while(u != AW_null) {
+    AW_unit_t *un = &unit(u);
+    if(UO_GetFrontType(gi, u) != AW_unit_order_none
+    && UO_GetFront(gi, u)->started
+    && !UO_GetFront(gi, u)->generated) { 
+      int x = UO_GetFront(gi, u)->click_cx - cl->viewport_x,
+          y = UO_GetFront(gi, u)->click_cy - cl->viewport_y;
+      if(INSIDE_CON(x, y)) {
+        switch(UO_GetFrontType(gi, u)) {
+          case AW_unit_order_move: {
+            pos_x += x;
+            pos_y += y;
+            k++;
+            attack_here = UO_GetFront(gi, u)->attack_here && attack_here;
+          } break;
+        }
+      }
+    }
+    u = unit(u).snext[c];
+  }
+  if(k > 0) {
+    pos_x /= k;
+    pos_y /= k;
+    if(INSIDE_CON(pos_x, pos_y))
+      TCOD_console_put_char_ex(
+        con, pos_x, pos_y,
+        0x1f,
+        attack_here ? TCOD_red : TCOD_blue,
+        TCOD_console_get_char_background(con, pos_x, pos_y));
   }
 }
 
@@ -3521,16 +3640,20 @@ void CL_SelectUnits(AW_game_instance_t *gi, AW_client_ptr c, int s_cx, int s_cy,
     cl->selected_sub_group = 
       unit(cl->selected_units_head).unit_type;
     cl->hud_state = 0;
+    cl->ability_here = false;
   }
 }
 
 void CL_AddToSelection(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) {
   if(!CL_IsUnitSelected(gi, c, u)) {
     AW_client_t *cl = &client(c);
+    cl->selected_gs = -1;
+    cl->window_opened = false;
     AW_unit_t *un = &unit(u);
     if(cl->selected_sub_group == -1) {
       cl->selected_sub_group = un->unit_type;
       cl->hud_state = 0;
+      cl->ability_here = false;
     }
     if(cl->selected_units_head == AW_null) {
       un->snext[c] = AW_null;
@@ -3565,6 +3688,8 @@ void CL_AddToSelection(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) {
 
 void CL_SubToSelection(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short gs) {
   AW_client_t     *cl = &client(c);
+  cl->selected_gs = -1;
+  cl->window_opened = false;
   if(gs == -1) {  
     AW_unit_ptr u2 = cl->selected_units_head;
     AW_unit_ptr previous = u2;
@@ -3602,6 +3727,7 @@ void CL_SubToSelection(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, s
         else
           cl->selected_sub_group = -1;
         cl->hud_state = 0;
+        cl->ability_here = false;
       }
     }
   } else {
@@ -3649,6 +3775,8 @@ void CL_FreeUnitSelection(AW_game_instance_t *gi, AW_client_ptr c) {
   cl->selected_units_head = AW_null;
   cl->selected_sub_group  = -1;
   cl->hud_state           = 0;
+  cl->selected_gs         = -1;
+  cl->window_opened       = false;
 }
 
 void CL_AddToGroupSelection(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, int gs) {
@@ -3669,11 +3797,14 @@ void CL_CopySelectionTo(AW_game_instance_t *gi, AW_client_ptr c, int gs) {
     u = unit(u).snext[c];
   }
   cl->gs_sub_group[gs] = cl->selected_sub_group;
+  cl->selected_gs = gs;
 }
 
 void CL_RestoreGroupSelection(AW_game_instance_t *gi, AW_client_ptr c, int gs) {
   AW_client_t *cl = &client(c);
   if(cl->gs_head[gs] != AW_null) {
+    if(cl->selected_gs == gs)
+      CL_FocusOnUnits(gi, c);
     CL_FreeUnitSelection(gi, c);
     AW_unit_ptr u = cl->gs_head[gs];
     while(u != AW_null) {
@@ -3682,6 +3813,8 @@ void CL_RestoreGroupSelection(AW_game_instance_t *gi, AW_client_ptr c, int gs) {
     }
     cl->selected_sub_group = cl->gs_sub_group[gs];
     cl->hud_state = 0;
+    cl->selected_gs = gs;
+    cl->ability_here = false;
   }
 }
 
@@ -3700,9 +3833,10 @@ void CL_SelectNextSubGroup(AW_game_instance_t *gi, AW_client_ptr c) {
   else
     assert(cl->selected_sub_group == -1);
   cl->hud_state = 0;
+  cl->ability_here = false;
 }
 
-void CL_CmdUnitOrderOnSelection(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, bool push_back, bool ground_only, AW_id_t cmd_mask, int r_squared, AW_ptr_t user_data, AW_unit_order_cb_t unit_order_completed_cb, AW_unit_order_cb_t unit_order_failed_cb) {
+void CL_CmdUnitOrderOnSelection(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, bool push_back, bool attack_here, bool ground_only, AW_id_t cmd_mask, int r_squared, AW_ptr_t user_data, AW_unit_order_cb_t unit_order_completed_cb, AW_unit_order_cb_t unit_order_failed_cb) {
   BOUND(MAP_SIZE_X-1, to_x);
   BOUND(MAP_SIZE_Y-1, to_y);
   AW_client_t *cl = &client(c);
@@ -3740,9 +3874,9 @@ void CL_CmdUnitOrderOnSelection(AW_game_instance_t *gi, AW_client_ptr c, int to_
   bool vis            = PL_IsInFov(gi, p, to_x>>RANGE_SHIFT, to_y>>RANGE_SHIFT);
   AW_unit_ptr target  = vis && !ground_only ? AT(unit_map, to_x, to_y) : AW_null;
   /* we can't attack a unit from the same team */
-  target              = unit(target).team_id == pl->team_id && cl->attack_here ? AW_null : target;
+  target              = unit(target).team_id == pl->team_id && attack_here ? AW_null : target;
   bool  in_formation  = 
-             !cl->attack_here
+             !attack_here
           && (target == AW_null 
           || unit(target).team_id == pl->team_id)
           && m < count
@@ -3764,16 +3898,18 @@ void CL_CmdUnitOrderOnSelection(AW_game_instance_t *gi, AW_client_ptr c, int to_
         cmd->cmd_mask           = cmd_mask == -1 ? cl->cmd_id : cmd_mask;
         cmd->type               = AW_cmd_type_unit_order;
         cmd->r_squared          = in_formation 
-                               || cl->attack_here 
+                               || attack_here 
                                || (target != AW_null 
                                && unit(target).team_id != pl->team_id) ? 0 : 
                                r_squared == -1 ? a : r_squared;
         cmd->target_cx          = (float)to_x + (in_formation ? un->pos_x - cx : 0);
         cmd->target_cy          = (float)to_y + (in_formation ? un->pos_y - cy : 0);
+        cmd->click_cx           = to_x;
+        cmd->click_cy           = to_y;
         cmd->target             = target != AW_null ? unit(target).cmd_id : AW_null;
         cmd->target_player_id   = target != AW_null ? unit(target).player_id : AW_null;
         cmd->target_cmd_id      = target != AW_null ? unit(target).cmd_id : AW_null;
-        cmd->attack_here        = cl->attack_here;
+        cmd->attack_here        = attack_here;
         cmd->time_stamp         = gi->game_time;
         cmd->push_back          = push_back;
         cmd->user_data          = user_data;
@@ -3860,6 +3996,24 @@ bool CL_HasOrder(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) {
   return false;
 }
 
+void CL_FocusOnUnits(AW_game_instance_t *gi, AW_client_ptr c) {
+  /* todo: cluster recognition */
+  AW_client_t *cl = &client(c);
+  short pos_x = 0,
+        pos_y = 0,
+        k = 0;
+  AW_unit_ptr u = cl->selected_units_head;
+  while(u != AW_null) {
+    pos_x += unit(u).pos_x;
+    pos_y += unit(u).pos_y;
+    u = unit(u).snext[c];
+    k++;
+  }
+  cl->viewport_x = (pos_x/k) - CON_RES_X/2;
+  cl->viewport_y = (pos_y/k) - HUD_START_Y/2;
+  BOUND_VIEWPORT
+}
+
 void CL_UpdateWindowCloseButton(AW_game_instance_t *gi, AW_client_ptr c) {
   AW_client_t *cl = &client(c);
   gi->close_btn.pos_x             = cl->window_end_x;
@@ -3905,7 +4059,7 @@ void CL_UpdateOptionWindow(AW_game_instance_t *gi, AW_client_ptr c) {
     || GI_IsKeyReleased(gi, TCODK_ESCAPE)) {
       cl->window_opened = false;
       cl->hud_state = HUD_STATE_NO_WINDOW;
-      GI_StopPropagation(gi, TCODK_ESCAPE);
+      GI_StopKeyPropagation(gi, TCODK_ESCAPE);
     }
     else
     if(BTN_IsClicked(gi, &gi->central_hud_btns.btns[0])) {
@@ -4091,43 +4245,47 @@ void CL_PostRender(void *sdl_surface) {
         if(u != AW_null) {
           AW_unit_t *un = &unit(u);
           AW_id_t team_id = TEAM_ID(un->player_id);
-          TCOD_color_t c = 
-            cl->attack_here ? RED : 
-            un->player_id == game_desc.local_player_id ? BLUE : 
-            team_id == local_pl->team_id ? BLUE : RED;
-          c = TCOD_color_multiply_scalar(c, 1.5f);
-          int x, y, size = SCREEN_UNIT_SIZE(un)>>2,
-              b = 4+(MAX_MANA(un) > 0 ? 4 : 0);
-          DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)) {
-            int i = f;
-            DO_TIMES(3) {
-              int j = f;
-              x = SCREEN_UNIT_X(un)+i+size,
-              y = SCREEN_UNIT_Y(un)+b+j;
-              if(INSIDE_SCREEN(x, y)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
-                ON_SCREEN(x, y) = COLOR(c);
-              x = SCREEN_UNIT_X(un)+i+size,
-              y = SCREEN_UNIT_Y(un)+SCREEN_UNIT_SIZE(un)-1-j;
-              if(INSIDE_SCREEN(x, y)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
-                ON_SCREEN(x, y) = COLOR(c);
+          if(cl->ability_here) {
+            if(gi->draw_cursor_cb)
+              gi->draw_cursor_cb(surface, gi, c, u, cl->selected_sub_group, cl->ability_id, offx, offy);
+          } else {
+            TCOD_color_t c = 
+              un->player_id == game_desc.local_player_id ? BLUE : 
+              team_id == local_pl->team_id ? BLUE : RED;
+            c = TCOD_color_multiply_scalar(c, 1.5f);
+            int x, y, size = SCREEN_UNIT_SIZE(un)>>2,
+                b = 4+(MAX_MANA(un) > 0 ? 4 : 0);
+            DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)) {
+              int i = f;
+              DO_TIMES(3) {
+                int j = f;
+                x = SCREEN_UNIT_X(un)+i+size,
+                y = SCREEN_UNIT_Y(un)+b+j;
+                if(INSIDE_SCREEN(x, y)
+                && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+                  ON_SCREEN(x, y) = COLOR(c);
+                x = SCREEN_UNIT_X(un)+i+size,
+                y = SCREEN_UNIT_Y(un)+SCREEN_UNIT_SIZE(un)-1-j;
+                if(INSIDE_SCREEN(x, y)
+                && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+                  ON_SCREEN(x, y) = COLOR(c);
+              }
             }
-          }
-          DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)-3) {
-            int i = f;
-            DO_TIMES(3) {
-              int j = f;
-              x = SCREEN_UNIT_X(un)+j,
-              y = SCREEN_UNIT_Y(un)+size+b+i;
-              if(INSIDE_SCREEN(x, y)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
-                ON_SCREEN(x, y) = COLOR(c);
-              x = SCREEN_UNIT_X(un)+SCREEN_UNIT_SIZE(un)-1-j,
-              y = SCREEN_UNIT_Y(un)+size+b+i;
-              if(INSIDE_SCREEN(x, y)
-              && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
-                ON_SCREEN(x, y) = COLOR(c);
+            DO_TIMES(SCREEN_UNIT_SIZE(un)-(size<<1)-3) {
+              int i = f;
+              DO_TIMES(3) {
+                int j = f;
+                x = SCREEN_UNIT_X(un)+j,
+                y = SCREEN_UNIT_Y(un)+size+b+i;
+                if(INSIDE_SCREEN(x, y)
+                && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+                  ON_SCREEN(x, y) = COLOR(c);
+                x = SCREEN_UNIT_X(un)+SCREEN_UNIT_SIZE(un)-1-j,
+                y = SCREEN_UNIT_Y(un)+size+b+i;
+                if(INSIDE_SCREEN(x, y)
+                && INSIDE_CON(ON_CON_X(x), ON_CON_Y(y))) 
+                  ON_SCREEN(x, y) = COLOR(c);
+              }
             }
           }
         }
@@ -4412,6 +4570,11 @@ bool PL_NextTurn(AW_game_instance_t *gi, AW_player_ptr p) {
 void PL_KillUnit(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr unit_p, AW_unit_ptr u) {
   AW_player_t *pl = &player(unit_p);
   AW_unit_t *un = &unit(u);
+  AW_blood_ptr o = BLOOD_New(gi);
+  if(o != AW_null) {
+    blood(o).pos_x = un->pos_x+(rand()%3)-1;
+    blood(o).pos_y = un->pos_y+(rand()%3)-1;
+  }
   if(gi->on_death_cb
   && killer_p != AW_null)
     gi->on_death_cb(gi, killer_p, unit_p, u);
@@ -4496,6 +4659,8 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
             data.r_squared        = cmd->r_squared;
             data.target_cx        = cmd->target_cx;
             data.target_cy        = cmd->target_cy;
+            data.click_cx         = cmd->click_cx;
+            data.click_cy         = cmd->click_cy;
             data.target           = cmd->target;
             data.target_player_id = cmd->target_player_id;
             data.target_cmd_id    = cmd->target_cmd_id;
@@ -4606,6 +4771,7 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
               o = UO_PushFront(gi, u);
             }
             AW_unit_order_t *uo         = &order(o);
+            uo->generated               = false;
             uo->user_data               = cmd->user_data;
             uo->time_stamp              = cmd->time_stamp;
             uo->unit_order_completed_cb = cmd->unit_order_completed_cb;
@@ -4615,6 +4781,8 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
               uo->target            = AW_null;
               uo->target_cx         = cmd->target_cx;
               uo->target_cy         = cmd->target_cy;
+              uo->click_cx          = cmd->click_cx;
+              uo->click_cy          = cmd->click_cy;
               uo->cmd_mask          = cmd->cmd_mask;
               uo->r_squared         = cmd->r_squared;
               uo->d_squared         = 0;
@@ -4635,6 +4803,8 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
                 uo->target_cmd_id     = cmd->target_cmd_id;
                 uo->target_cx         = cmd->target_cx;
                 uo->target_cy         = cmd->target_cy;
+                uo->click_cx          = cmd->click_cx;
+                uo->click_cy          = cmd->click_cy;
                 uo->cmd_mask          = uo->target;
                 uo->r_squared         = cmd->r_squared;
                 uo->d_squared         = 0;
@@ -4800,6 +4970,13 @@ void PL_UpdateUnits(AW_game_instance_t *gi, AW_player_ptr p) {
     AW_unit_t *un = &unit(u);
     if(un->blink_acc > 0)
       un->blink_acc -= gi->game_time_step;
+    u = un->pnext;
+  }
+  /* status effects */
+  u = pl->unit_head;
+  while(u != AW_null) {
+    AW_unit_t *un = &unit(u);
+    ST_Update(gi, u);
     u = un->pnext;
   }
   /* workers */
@@ -6147,6 +6324,7 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   FT_Init(gi, argc, argv);
   LI_Init(gi, argc, argv);
   SO_Init(gi, argc, argv);
+  ST_Init(gi, argc, argv);
   FL_Init(gi, argc, argv);
   BE_Init(gi, argc, argv);
   LG_Init(gi, argc, argv);
@@ -6182,7 +6360,19 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   gi->fog_noise = TCOD_noise_new(2, 0.5f, 2.0, null);
   gi->fog_scroll_x = gi->fog_scroll_y = 0;
   gi->fog_mask = TCOD_image_load("./data/fog_mask.png");
-  gi->on_death_cb = null;
+  /* callbacks */
+  gi->free_all_cb             = null;        
+  gi->update_client_cb        = null;
+  gi->on_death_cb             = null;      
+  gi->get_abilities_count_cb  = null;
+  gi->get_ability_name_cb     = null;
+  gi->get_ability_shortcut_cb = null;
+  gi->trigger_ability_cb      = null;
+  gi->on_spawn_unit_cb        = null;
+  gi->on_cancel_build_cb      = null;
+  gi->on_generic_cmd_cb       = null;
+  gi->draw_pointer_cb         = null;
+  gi->draw_cursor_cb          = null;
   #include "ui.cpp"
   trace("game instance initiated");
 }
@@ -6890,7 +7080,7 @@ bool GI_IsKeyPressed2(AW_game_instance_t *gi, TCOD_keycode_t k) {
   return TCOD_console_is_key_pressed(k);
 }
 
-void GI_StopPropagation(AW_game_instance_t *gi, TCOD_keycode_t k, char c) {
+void GI_StopKeyPropagation(AW_game_instance_t *gi, TCOD_keycode_t k, char c) {
   for(int f = 0; f < gi->key_counter; f++) {
     if(k != TCODK_CHAR
     && gi->keys[f].vk == k)
@@ -6902,6 +7092,11 @@ void GI_StopPropagation(AW_game_instance_t *gi, TCOD_keycode_t k, char c) {
     ||  gi->keys[f].c-32 == c))
       gi->keys[f].c = 0;
   }
+}
+
+void GI_StopClicksPropagation(AW_game_instance_t *gi) {
+  gi->lbtn_up = false;
+  gi->rbtn_up = false;
 }
 
 bool GI_InState(AW_game_instance_t *gi, AW_state_t st) {
