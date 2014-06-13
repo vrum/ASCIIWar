@@ -154,6 +154,8 @@ AW_castle_ptr CAS_New() {
     moba_gi.free_castle_head       = castle(moba_gi.free_castle_head).fnext;
     castle(r).previous             = AW_null;
     castle(r).next                 = moba_gi.castle_head;
+    castle(r).rally_target         = AW_null;
+    castle(r).rally_cx             = -1;
     if(moba_gi.castle_head != AW_null)
       castle(moba_gi.castle_head).previous = r;
     moba_gi.castle_head = r;
@@ -464,6 +466,8 @@ void MOBA_InitGame(AW_game_instance_t *gi, game_desc_t *gd) {
   gi->on_spawn_unit_cb                = MOBA_OnSpawnUnit;
   gi->on_cancel_build_cb              = MOBA_OnCancelBuild;
   gi->on_generic_cmd_cb               = MOBA_GenericCmd;
+  gi->on_unit_order_cb                = MOBA_OnUnitOrder;
+  gi->draw_unit_target_cb             = MOBA_DrawUnitTarget;
   gi->draw_pointer_cb                 = MOBA_DrawPointer;
   gi->draw_cursor_cb                  = MOBA_DrawCursor;
 }
@@ -477,90 +481,105 @@ void MOBA_StartMobsAIClient(AW_game_instance_t *gi, AW_client_ptr c) {
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 25 : MAP_SIZE_X-1-25, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-25 : 25,
     AW_unit_type_C);
   CL_CmdSpawnUnit(
     gi, 
     c, 
-    game_desc.local_team_id == 0 ? 40 : MAP_SIZE_X-1-40, 
-    game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-40 : 40,
+    AW_null,
+    game_desc.local_team_id == 0 ? 42 : MAP_SIZE_X-1-42, 
+    game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-42 : 42,
     AW_unit_type_G);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 55 : MAP_SIZE_X-1-55, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-55 : 55,
     AW_unit_type_L);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 75 : MAP_SIZE_X-1-75, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-75 : 75,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 75 : MAP_SIZE_X-1-75, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 33 : MAP_SIZE_X-1-33, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-75 : 75,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 112 : MAP_SIZE_X-1-112, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-112 : 112,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 169 : MAP_SIZE_X-1-169, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-169 : 169,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 150 : MAP_SIZE_X-1-150, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 33 : MAP_SIZE_X-1-33, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-150 : 150,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 225 : MAP_SIZE_X-1-225, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-225 : 225,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 255 : MAP_SIZE_X-1-255, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 33 : MAP_SIZE_X-1-33, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-255 : 255,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? (MAP_SIZE_X-150) : MAP_SIZE_X-1-(MAP_SIZE_X-150), 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-32 : 32,
     AW_unit_type_T);
   CL_CmdSpawnUnit(
     gi, 
     c, 
+    AW_null,
     game_desc.local_team_id == 0 ? 33 : MAP_SIZE_X-1-33, 
     game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-(MAP_SIZE_Y-150) : (MAP_SIZE_Y-150),
     AW_unit_type_T);
@@ -585,6 +604,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           CL_CmdSpawnUnit(
             gi, 
             c, 
+            AW_null,
             game_desc.local_team_id == 0 ? 35 : MAP_SIZE_X-1-35, 
             game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-35 : 35, 
             AW_unit_type_m,
@@ -599,6 +619,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           CL_CmdSpawnUnit(
             gi, 
             c, 
+            AW_null,
             game_desc.local_team_id == 0 ? 35 : MAP_SIZE_X-1-35, 
             game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-35 : 35, 
             AW_unit_type_m,
@@ -613,6 +634,7 @@ void MOBA_UpdateMobsAI(AW_game_instance_t *gi, AW_client_ptr c) {
           CL_CmdSpawnUnit(
             gi, 
             c, 
+            AW_null,
             game_desc.local_team_id == 0 ? 35 : MAP_SIZE_X-1-35, 
             game_desc.local_team_id == 0 ? MAP_SIZE_Y-1-35 : 35, 
             AW_unit_type_m,
@@ -1149,11 +1171,9 @@ void MOBA_DeathCB(AW_game_instance_t *gi, AW_player_ptr killer_p, AW_player_ptr 
 short MOBA_GetAbilitiesCount(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type) {
   AW_client_t *cl = &client(c);
   switch(unit_type) {
-    case AW_unit_type_g:
+    case AW_unit_type_r:
       return 1;
     case AW_unit_type_k:
-      return 1;
-    case AW_unit_type_O:
       return 1;
     case AW_unit_type_N:
       return 2;
@@ -1174,17 +1194,12 @@ short MOBA_GetAbilitiesCount(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ty
 str MOBA_GetAbilityName(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type, short i) {
   AW_client_t *cl = &client(c);
   switch(unit_type) {
-    case AW_unit_type_g:
+    case AW_unit_type_r:
       switch(i) {
         case 0:
           return "(A) Attack";
       }
     case AW_unit_type_k:
-      switch(i) {
-        case 0:
-          return "(A) Attack";
-      }
-    case AW_unit_type_O:
       switch(i) {
         case 0:
           return "(A) Attack";
@@ -1216,17 +1231,12 @@ str MOBA_GetAbilityName(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t 
 char MOBA_GetAbilityShortcut(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_type_t unit_type, short i) {
   AW_client_t *cl = &client(c);
   switch(unit_type) {
-    case AW_unit_type_g:
+    case AW_unit_type_r:
       switch(i) {
         case 0:
           return 'A';
       }
     case AW_unit_type_k:
-      switch(i) {
-        case 0:
-          return 'A';
-      }
-    case AW_unit_type_O:
       switch(i) {
         case 0:
           return 'A';
@@ -1259,19 +1269,13 @@ bool MOBA_TriggerAbility(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u,
   AW_client_t *cl = &client(c);
   AW_unit_t *un = &unit(u);
   switch(un->unit_type) {
-    case AW_unit_type_g:
+    case AW_unit_type_r:
       switch(i) {
         case 0:
           TRIGGER_ATTACK
           break;
       } break;
     case AW_unit_type_k:
-      switch(i) {
-        case 0:
-          TRIGGER_ATTACK
-          break;
-      } break;
-    case AW_unit_type_O:
       switch(i) {
         case 0:
           TRIGGER_ATTACK
@@ -1284,7 +1288,7 @@ bool MOBA_TriggerAbility(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u,
           break;
         case 1:
           ABILITY_HERE {
-            CL_CmdSpawnUnit(gi, c, cx, cy,AW_unit_type_k);
+            CL_CmdSpawnUnit(gi, c, un->cmd_id, cx, cy, AW_unit_type_k);
           }
           break;
       } break;
@@ -1537,8 +1541,6 @@ void MOBA_HUDInfoCastle(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) 
     moba_gi.central_hud_btns.btn_count = i = 0;
     moba_gi.central_hud_btns.pos_x     = (cl->window_start_x+cl->window_end_x)/2;
     moba_gi.central_hud_btns.pos_y     = cl->window_start_y+3;
-    DISPLAY_CASTLE_UNIT(lawful_evil_level1, "(G) Goblin", AW_unit_type_g, 'G')
-    DISPLAY_CASTLE_UNIT(lawful_evil_level1, "(O) Orc", AW_unit_type_O, 'O')
     DISPLAY_CASTLE_UNIT(chaotic_evil_level1, "(N) Necromancer", AW_unit_type_N, 'N')
     DISPLAY_CASTLE_UNIT(chaotic_evil_level1, "(K) Skeleton", AW_unit_type_k, 'K')
     BTN_Render(gi, &moba_gi.central_hud_btns, true, 1); 
@@ -1665,12 +1667,10 @@ void MOBA_HUDInfoLibrary(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u)
 
 str MOBA_GetUnitName(AW_game_instance_t *gi, AW_unit_type_t unit_type) {
   switch(unit_type) {
-    case AW_unit_type_g:
-      return "Goblin      ";
+    case AW_unit_type_r:
+      return "Rat         ";
     case AW_unit_type_k:
       return "Skeleton    ";
-    case AW_unit_type_O:
-      return "Orc         ";
     case AW_unit_type_N:
       return "Necromancer ";
     case AW_unit_type_m:
@@ -1688,7 +1688,7 @@ str MOBA_GetUnitName(AW_game_instance_t *gi, AW_unit_type_t unit_type) {
   return "";
 }
 
-void MOBA_OnSpawnUnit(AW_game_instance_t *gi, AW_unit_ptr u) {
+void MOBA_OnSpawnUnit(AW_game_instance_t *gi, AW_unit_ptr from_u, AW_unit_ptr u) {
   AW_unit_t *un = &unit(u);
   if(TEAM_ID(un->player_id) == game_desc.local_team_id)
     switch(un->unit_type) {
@@ -1713,6 +1713,24 @@ void MOBA_OnSpawnUnit(AW_game_instance_t *gi, AW_unit_ptr u) {
           library(L).player_id = un->player_id;
           un->user_data = (AW_ptr_t)L;
         } break;
+      default:
+        if(from_u != AW_null) {
+          AW_unit_t *from_un = &unit(from_u);
+          switch(from_un->unit_type) {
+            case AW_unit_type_C: {
+              AW_castle_ptr C = (AW_castle_ptr)from_un->user_data;
+              AW_castle_t *ca = &castle(C);
+              if(ca->rally_target != AW_null
+              || ca->rally_cx != -1) {
+                AW_client_ptr c = GI_GetHumanClient(gi);
+                AW_client_t *cl = &client(c);
+                int pos_x = (ca->rally_target != AW_null ? unit(ca->rally_target).pos_x : ca->rally_cx),
+                    pos_y = (ca->rally_target != AW_null ? unit(ca->rally_target).pos_y : ca->rally_cy);
+                CL_CmdUnitOrder(gi, c, u, pos_x, pos_y, false, false);
+              }
+            } break;
+          }
+        } break;
     }
 }
 
@@ -1724,8 +1742,8 @@ void MOBA_OnCancelBuild(AW_game_instance_t *gi, AW_build_order_ptr b) {
   mpl->gold += unit_dic[bo->unit_type].gold_price;
 }
 
-void MOBA_GenericCmd(AW_game_instance_t *gi, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy) {
-  switch(id) {
+void MOBA_GenericCmd(AW_game_instance_t *gi, AW_id_t cmd_type, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy) {
+  switch(cmd_type) {
     case AW_moba_generic_learn_skill: {
       AW_moba_player_ptr mp = player(GI_GetPlayerPtr(gi, player_id)).user_data;
       assert(mp != AW_null);
@@ -1739,6 +1757,23 @@ void MOBA_GenericCmd(AW_game_instance_t *gi, AW_id_t id, AW_id_t player_id, AW_i
         GENERIC_LIBRARY_SKILL(chaotic_evil_level1, CHAOTIC_EVIL_LEVEL1_XP)
       }
     } break;
+  }
+}
+
+void MOBA_OnUnitOrder(AW_game_instance_t *gi, AW_unit_ptr u, AW_unit_ptr target, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy) {
+  AW_player_ptr p = GI_GetPlayerPtr(gi, player_id);
+  AW_player_t *pl = &player(p);
+  if(pl->team_id == game_desc.local_team_id) {
+    switch(unit_type) {
+      case AW_unit_type_C: {
+        AW_castle_ptr c   = (AW_castle_ptr)unit(u).user_data;
+        AW_castle_t *ca   = &castle(c);
+        ca->rally_target  = target;
+        ca->rally_cx      = target_cx;
+        ca->rally_cy      = target_cy;
+        trace(ca->rally_cx);
+      } break;
+    }
   }
 }
 
@@ -1779,10 +1814,34 @@ void MOBA_OpenWindow(AW_game_instance_t *gi, AW_client_ptr c, int size_x, int si
   GI_StopClicksPropagation(gi);
 }
 
+void MOBA_DrawUnitTarget(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u) {
+  AW_client_t *cl = &client(c);
+  AW_unit_t *un = &unit(u);
+  switch(un->unit_type) {
+    case AW_unit_type_C: {
+      AW_castle_ptr c = (AW_castle_ptr)un->user_data;
+      AW_castle_t *ca = &castle(c);
+      if(ca->rally_target != AW_null
+      || (ca->rally_cx != -1 
+      && AT(unit_map, ca->rally_cx, ca->rally_cy)
+      == AW_null)) {
+        int pos_x = (ca->rally_target != AW_null ? unit(ca->rally_target).pos_x : ca->rally_cx) - cl->viewport_x,
+            pos_y = (ca->rally_target != AW_null ? unit(ca->rally_target).pos_y : ca->rally_cy) - cl->viewport_y;
+        if(INSIDE_CON(pos_x, pos_y))
+          TCOD_console_put_char_ex(
+            con, pos_x, pos_y,
+            0x1f,
+            TCOD_blue,
+            TCOD_console_get_char_background(con, pos_x, pos_y));
+      }
+    } break;
+  }
+}
+
 void MOBA_DrawPointer(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, short cx, short cy) {
   AW_client_t *cl = &client(c);
   switch(unit_type) {
-    case AW_unit_type_g:
+    case AW_unit_type_r:
       switch(ability_id) {
         /* attack */
         case 0:
@@ -1790,13 +1849,6 @@ void MOBA_DrawPointer(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW
           break;
       } break;
     case AW_unit_type_k:
-      switch(ability_id) {
-        /* attack */
-        case 0:
-          DRAW_ATTACK_POINTER
-          break;
-      } break;
-    case AW_unit_type_O:
       switch(ability_id) {
         /* attack */
         case 0:
@@ -1834,7 +1886,7 @@ void MOBA_DrawPointer(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW
 void MOBA_DrawCursor(SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, int offx, int offy) {
   AW_unit_t *un = &unit(u);
   switch(unit_type) {
-    case AW_unit_type_g:
+    case AW_unit_type_r:
       switch(ability_id) {
         /* attack */
         case 0:
@@ -1842,13 +1894,6 @@ void MOBA_DrawCursor(SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr
           break;
       } break;
     case AW_unit_type_k:
-      switch(ability_id) {
-        /* attack */
-        case 0:
-          MOBA_DrawAttackCursor(surface, gi, c, u, offx, offy);
-          break;
-      } break;
-    case AW_unit_type_O:
       switch(ability_id) {
         /* attack */
         case 0:
@@ -1929,49 +1974,56 @@ void MOBA_DrawAttackCursor(SDL_Surface *surface, AW_game_instance_t *gi, AW_clie
 AW_moba_game_instance_t moba_gi;
 
 // units.
-AW_ascii_t              little_g[1]   = {'g'},
-                        little_k[2*2] = {0x00 + 0x10d, 0x01 + 0x10d,
-                                         0x10 + 0x10d, 0x11 + 0x10d},
-                        big_O[2*2]    = {0x00 + 0xE0 + 0x8, 0x01 + 0xE0 + 0x8,
-                                         0x10 + 0xE0 + 0x8, 0x11 + 0xE0 + 0x8},
-                        big_N[3*3]    = {0x00 + 0x10a, 0x01 + 0x10a, 0x02 + 0x10a,
-                                         0x10 + 0x10a, 0x11 + 0x10a, 0x12 + 0x10a,
-                                         0x20 + 0x10a, 0x21 + 0x10a, 0x22 + 0x10a},
-                        little_m[2*2] = {0x00 + 0xE0 + 0xB, 0x01 + 0xE0 + 0xB,
-                                         0x10 + 0xE0 + 0xB, 0x11 + 0xE0 + 0xB},
-                        big_C[8*8]    = {0x00 + 0x80, 0x01 + 0x80, 0x02 + 0x80, 0x03 + 0x80, 0x04 + 0x80, 0x05 + 0x80, 0x06 + 0x80, 0x07 + 0x80,
-                                         0x10 + 0x80, 0x11 + 0x80, 0x12 + 0x80, 0x13 + 0x80, 0x14 + 0x80, 0x15 + 0x80, 0x16 + 0x80, 0x17 + 0x80,
-                                         0x20 + 0x80, 0x21 + 0x80, 0x22 + 0x80, 0x23 + 0x80, 0x24 + 0x80, 0x25 + 0x80, 0x26 + 0x80, 0x27 + 0x80,
-                                         0x30 + 0x80, 0x31 + 0x80, 0x32 + 0x80, 0x33 + 0x80, 0x34 + 0x80, 0x35 + 0x80, 0x36 + 0x80, 0x37 + 0x80,
-                                         0x40 + 0x80, 0x41 + 0x80, 0x42 + 0x80, 0x43 + 0x80, 0x44 + 0x80, 0x45 + 0x80, 0x46 + 0x80, 0x47 + 0x80,
-                                         0x50 + 0x80, 0x51 + 0x80, 0x52 + 0x80, 0x53 + 0x80, 0x54 + 0x80, 0x55 + 0x80, 0x56 + 0x80, 0x57 + 0x80,
-                                         0x60 + 0x80, 0x61 + 0x80, 0x62 + 0x80, 0x63 + 0x80, 0x64 + 0x80, 0x65 + 0x80, 0x66 + 0x80, 0x67 + 0x80,
-                                         0x70 + 0x80, 0x71 + 0x80, 0x72 + 0x80, 0x73 + 0x80, 0x74 + 0x80, 0x75 + 0x80, 0x76 + 0x80, 0x77 + 0x80},
-                        big_T[5*5]   = {0x00 + 0x90 + 0x8, 0x01 + 0x90 + 0x8, 0x02 + 0x90 + 0x8, 0x03 + 0x90 + 0x8, 0x04 + 0x90 + 0x8,
-                                        0x10 + 0x90 + 0x8, 0x11 + 0x90 + 0x8, 0x12 + 0x90 + 0x8, 0x13 + 0x90 + 0x8, 0x14 + 0x90 + 0x8,
-                                        0x20 + 0x90 + 0x8, 0x21 + 0x90 + 0x8, 0x22 + 0x90 + 0x8, 0x23 + 0x90 + 0x8, 0x24 + 0x90 + 0x8,
-                                        0x30 + 0x90 + 0x8, 0x31 + 0x90 + 0x8, 0x32 + 0x90 + 0x8, 0x33 + 0x90 + 0x8, 0x34 + 0x90 + 0x8,
-                                        0x40 + 0x90 + 0x8, 0x41 + 0x90 + 0x8, 0x42 + 0x90 + 0x8, 0x43 + 0x90 + 0x8, 0x44 + 0x90 + 0x8},
-                        big_G[4*4]   = {0x00 + 0x100, 0x01 + 0x100, 0x02 + 0x100, 0x03 + 0x100,
-                                        0x10 + 0x100, 0x11 + 0x100, 0x12 + 0x100, 0x13 + 0x100,
-                                        0x20 + 0x100, 0x21 + 0x100, 0x22 + 0x100, 0x23 + 0x100,
-                                        0x30 + 0x100, 0x31 + 0x100, 0x32 + 0x100, 0x33 + 0x100},
-                        big_L[6*6]   = {0x00 + 0x104, 0x01 + 0x104, 0x02 + 0x104, 0x03 + 0x104, 0x04 + 0x104, 0x05 + 0x104,
-                                        0x10 + 0x104, 0x11 + 0x104, 0x12 + 0x104, 0x13 + 0x104, 0x14 + 0x104, 0x15 + 0x104,
-                                        0x20 + 0x104, 0x21 + 0x104, 0x22 + 0x104, 0x23 + 0x104, 0x24 + 0x104, 0x25 + 0x104,
-                                        0x30 + 0x104, 0x31 + 0x104, 0x32 + 0x104, 0x33 + 0x104, 0x34 + 0x104, 0x35 + 0x104,
-                                        0x40 + 0x104, 0x41 + 0x104, 0x42 + 0x104, 0x43 + 0x104, 0x44 + 0x104, 0x45 + 0x104,
-                                        0x50 + 0x104, 0x51 + 0x104, 0x52 + 0x104, 0x53 + 0x104, 0x54 + 0x104, 0x55 + 0x104}; 
-AW_unit_class_t         unit_dic[MAX_UNIT_TYPE] =
- {{50,    10, 10000, 10, 1,   3,    50,    0, 1, 40,   8*8,   5*5,  true, little_g},
-  {100,   10, 10000, 10, 1,   3,    50,    0, 2, 40,   8*8,   5*5,  true, little_k},
-  {100,   10, 10000, 10, 1,   3,    50,    0, 2, 40,   8*8,   5*5,  true, big_O},
-  {100,   10, 10000, 10, 1,   3,    50,  100, 3, 40,   8*8,   5*5,  true, big_N},
-  {25,    10, 10000, 8,  1,   3,    50,    0, 2, 40,   8*8,   3*3,  true, little_m},
-  {800,   10, 10000, 0,  2,  10,  1500,    0, 5, 60, 25*25, 25*25, false, big_T},
-  {1500,  10, 10000, 0,  1,   0,  3500,    0, 6, 80,   8*8,    -1, false, big_L},
-  {1500,  10, 10000, 0,  1,   0,  3500,    0, 4, 80,   8*8,    -1, false, big_G},
-  {5000,  10, 10000, 0,  1,   0,  2250,    0, 8, 80,   8*8,    -1, false, big_C}};
+AW_ascii_t              little_r[1]   = {'r'},
+                        little_k[2*2] = {0x00 + 0x2d0, 0x01 + 0x2d0,
+                                         0x10 + 0x2d0, 0x11 + 0x2d0},
+                        big_N[3*3]    = {0x00 + 0x2a3, 0x01 + 0x2a3, 0x02 + 0x2a3,
+                                         0x10 + 0x2a3, 0x11 + 0x2a3, 0x12 + 0x2a3,
+                                         0x20 + 0x2a3, 0x21 + 0x2a3, 0x22 + 0x2a3},
+                        little_m[3*3] = {0x00 + 0x2a0, 0x01 + 0x2a0, 0x02 + 0x2a0,
+                                         0x10 + 0x2a0, 0x11 + 0x2a0, 0x12 + 0x2a0,
+                                         0x20 + 0x2a0, 0x21 + 0x2a0, 0x22 + 0x2a0},
+                        big_C[12*12]  = {0x00 + 0x100, 0x01 + 0x100, 0x02 + 0x100, 0x03 + 0x100, 0x04 + 0x100, 0x05 + 0x100, 0x06 + 0x100, 0x07 + 0x100, 0x08 + 0x100, 0x09 + 0x100, 0x0a + 0x100, 0x0b + 0x100, 
+                                         0x10 + 0x100, 0x11 + 0x100, 0x12 + 0x100, 0x13 + 0x100, 0x14 + 0x100, 0x15 + 0x100, 0x16 + 0x100, 0x17 + 0x100, 0x18 + 0x100, 0x19 + 0x100, 0x1a + 0x100, 0x1b + 0x100,
+                                         0x20 + 0x100, 0x21 + 0x100, 0x22 + 0x100, 0x23 + 0x100, 0x24 + 0x100, 0x25 + 0x100, 0x26 + 0x100, 0x27 + 0x100, 0x28 + 0x100, 0x29 + 0x100, 0x2a + 0x100, 0x2b + 0x100,
+                                         0x30 + 0x100, 0x31 + 0x100, 0x32 + 0x100, 0x33 + 0x100, 0x34 + 0x100, 0x35 + 0x100, 0x36 + 0x100, 0x37 + 0x100, 0x38 + 0x100, 0x39 + 0x100, 0x3a + 0x100, 0x3b + 0x100,
+                                         0x40 + 0x100, 0x41 + 0x100, 0x42 + 0x100, 0x43 + 0x100, 0x44 + 0x100, 0x45 + 0x100, 0x46 + 0x100, 0x47 + 0x100, 0x48 + 0x100, 0x49 + 0x100, 0x4a + 0x100, 0x4b + 0x100,
+                                         0x50 + 0x100, 0x51 + 0x100, 0x52 + 0x100, 0x53 + 0x100, 0x54 + 0x100, 0x55 + 0x100, 0x56 + 0x100, 0x57 + 0x100, 0x58 + 0x100, 0x59 + 0x100, 0x5a + 0x100, 0x5b + 0x100,
+                                         0x60 + 0x100, 0x61 + 0x100, 0x62 + 0x100, 0x63 + 0x100, 0x64 + 0x100, 0x65 + 0x100, 0x66 + 0x100, 0x67 + 0x100, 0x68 + 0x100, 0x69 + 0x100, 0x6a + 0x100, 0x6b + 0x100,
+                                         0x70 + 0x100, 0x71 + 0x100, 0x72 + 0x100, 0x73 + 0x100, 0x74 + 0x100, 0x75 + 0x100, 0x76 + 0x100, 0x77 + 0x100, 0x78 + 0x100, 0x79 + 0x100, 0x7a + 0x100, 0x7b + 0x100,
+                                         0x80 + 0x100, 0x81 + 0x100, 0x82 + 0x100, 0x83 + 0x100, 0x84 + 0x100, 0x85 + 0x100, 0x86 + 0x100, 0x87 + 0x100, 0x88 + 0x100, 0x89 + 0x100, 0x8a + 0x100, 0x8b + 0x100,
+                                         0x90 + 0x100, 0x91 + 0x100, 0x92 + 0x100, 0x93 + 0x100, 0x94 + 0x100, 0x95 + 0x100, 0x96 + 0x100, 0x97 + 0x100, 0x98 + 0x100, 0x99 + 0x100, 0x9a + 0x100, 0x9b + 0x100,
+                                         0xa0 + 0x100, 0xa1 + 0x100, 0xa2 + 0x100, 0xa3 + 0x100, 0xa4 + 0x100, 0xa5 + 0x100, 0xa6 + 0x100, 0xa7 + 0x100, 0xa8 + 0x100, 0xa9 + 0x100, 0xaa + 0x100, 0xab + 0x100,
+                                         0xb0 + 0x100, 0xb1 + 0x100, 0xb2 + 0x100, 0xb3 + 0x100, 0xb4 + 0x100, 0xb5 + 0x100, 0xb6 + 0x100, 0xb7 + 0x100, 0xb8 + 0x100, 0xb9 + 0x100, 0xba + 0x100, 0xbb + 0x100},
+                        big_T[6*6]   = {0x00 + 0x1c6, 0x01 + 0x1c6, 0x02 + 0x1c6, 0x03 + 0x1c6, 0x04 + 0x1c6, 0x05 + 0x1c6,
+                                        0x10 + 0x1c6, 0x11 + 0x1c6, 0x12 + 0x1c6, 0x13 + 0x1c6, 0x14 + 0x1c6, 0x15 + 0x1c6,
+                                        0x20 + 0x1c6, 0x21 + 0x1c6, 0x22 + 0x1c6, 0x23 + 0x1c6, 0x24 + 0x1c6, 0x25 + 0x1c6,
+                                        0x30 + 0x1c6, 0x31 + 0x1c6, 0x32 + 0x1c6, 0x33 + 0x1c6, 0x34 + 0x1c6, 0x35 + 0x1c6,
+                                        0x40 + 0x1c6, 0x41 + 0x1c6, 0x42 + 0x1c6, 0x43 + 0x1c6, 0x44 + 0x1c6, 0x45 + 0x1c6,
+                                        0x50 + 0x1c6, 0x51 + 0x1c6, 0x52 + 0x1c6, 0x53 + 0x1c6, 0x54 + 0x1c6, 0x55 + 0x1c6},
+                        big_G[8*8]   = {0x00 + 0x220, 0x01 + 0x220, 0x02 + 0x220, 0x03 + 0x220, 0x04 + 0x220, 0x05 + 0x220, 0x06 + 0x220, 0x07 + 0x220,
+                                        0x10 + 0x220, 0x11 + 0x220, 0x12 + 0x220, 0x13 + 0x220, 0x14 + 0x220, 0x15 + 0x220, 0x16 + 0x220, 0x17 + 0x220,
+                                        0x20 + 0x220, 0x21 + 0x220, 0x22 + 0x220, 0x23 + 0x220, 0x24 + 0x220, 0x25 + 0x220, 0x26 + 0x220, 0x27 + 0x220,
+                                        0x30 + 0x220, 0x31 + 0x220, 0x32 + 0x220, 0x33 + 0x220, 0x34 + 0x220, 0x35 + 0x220, 0x36 + 0x220, 0x37 + 0x220,
+                                        0x40 + 0x220, 0x41 + 0x220, 0x42 + 0x220, 0x43 + 0x220, 0x44 + 0x220, 0x45 + 0x220, 0x46 + 0x220, 0x47 + 0x220,
+                                        0x50 + 0x220, 0x51 + 0x220, 0x52 + 0x220, 0x53 + 0x220, 0x54 + 0x220, 0x55 + 0x220, 0x56 + 0x220, 0x57 + 0x220,
+                                        0x60 + 0x220, 0x61 + 0x220, 0x62 + 0x220, 0x63 + 0x220, 0x64 + 0x220, 0x65 + 0x220, 0x66 + 0x220, 0x67 + 0x220,
+                                        0x70 + 0x220, 0x71 + 0x220, 0x72 + 0x220, 0x73 + 0x220, 0x74 + 0x220, 0x75 + 0x220, 0x76 + 0x220, 0x77 + 0x220},
+                        big_L[6*6]   = {0x00 + 0x1c0, 0x01 + 0x1c0, 0x02 + 0x1c0, 0x03 + 0x1c0, 0x04 + 0x1c0, 0x05 + 0x1c0,
+                                        0x10 + 0x1c0, 0x11 + 0x1c0, 0x12 + 0x1c0, 0x13 + 0x1c0, 0x14 + 0x1c0, 0x15 + 0x1c0,
+                                        0x20 + 0x1c0, 0x21 + 0x1c0, 0x22 + 0x1c0, 0x23 + 0x1c0, 0x24 + 0x1c0, 0x25 + 0x1c0,
+                                        0x30 + 0x1c0, 0x31 + 0x1c0, 0x32 + 0x1c0, 0x33 + 0x1c0, 0x34 + 0x1c0, 0x35 + 0x1c0,
+                                        0x40 + 0x1c0, 0x41 + 0x1c0, 0x42 + 0x1c0, 0x43 + 0x1c0, 0x44 + 0x1c0, 0x45 + 0x1c0,
+                                        0x50 + 0x1c0, 0x51 + 0x1c0, 0x52 + 0x1c0, 0x53 + 0x1c0, 0x54 + 0x1c0, 0x55 + 0x1c0}; 
+AW_unit_class_t         unit_dic[MAX_UNIT_TYPE] = {
+  {100,   10, 10000, 10, 1,   3,    50,    0,  1, 40,   12*12,   5*5,  true, little_r},
+  {100,   10, 10000, 10, 1,   3,    50,    0,  2, 40,   12*12,   5*5,  true, little_k},
+  {100,   10, 10000, 10, 1,   3,    50,  100,  3, 40,   12*12,   8*8,  true, big_N},
+  {25,    10, 10000, 8,  1,   3,    50,    0,  3, 40,   12*12,   5*5,  true, little_m},
+  {800,   10, 10000, 0,  2,  10,  1500,    0,  6, 60, 25*25, 25*25, false, big_T},
+  {1500,  10, 10000, 0,  1,   0,  3500,    0,  6, 80,   12*12,    -1, false, big_L},
+  {1500,  10, 10000, 0,  1,   0,  3500,    0,  8, 80,   12*12,    -1, false, big_G},
+  {5000,  10, 10000, 0,  1,   0,  2250,    0, 12, 80,   12*12,    -1, false, big_C}};
   
 
 /*

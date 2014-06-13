@@ -85,7 +85,7 @@ typedef string str;
 #define THREADS											true
 
 #define NORMAL_TIME_STEP 						10
-#define SAME_UNIT_TYPE_SIZE 				30
+#define SAME_UNIT_TYPE_SIZE 				40
 #define MAX_GROUP_SELECTION 				10
 #define MAX_TIME_STEP 							50
 #define CMD_TURN_SHIFT 							2
@@ -106,7 +106,7 @@ typedef string str;
 #define AMBIENT_LIGHT 							50
 #define AMBIENT_LIGHTMAP 						TCOD_color_multiply_scalar(TCOD_color_RGB(97, 157, 180), 1)
 #define UNIT_AO_STRENGTH 						0.95f
-#define DIR_LIGHTMAP_X 							16
+#define DIR_LIGHTMAP_X 							8
 #define DIR_LIGHTMAP_Y 							16
 #define DIR_LIGHTMAP_COLOR 					TCOD_color_multiply_scalar(TCOD_color_RGB(255, 222, 0), 1)
 #define MAP_SIZE 										(MAP_SIZE_X * MAP_SIZE_Y)
@@ -783,7 +783,7 @@ short             		BO_GetBuildOrderCount    	(AW_game_instance_t *gi, AW_id_t p
 #define MAX_CLIENT						MAX_PLAYER
 #define MAX_UNIT 							1024
 #define MAX_UNIT_TYPE 				128
-#define MAX_UNIT_SIZE					8
+#define MAX_UNIT_SIZE					12
 #define unit(ptr)							(gi->units[(ptr)])
 typedef unsigned int AW_ascii_t;
 typedef short AW_unit_type_t;
@@ -904,7 +904,8 @@ struct AW_unit_order_packet_t {
 };
 struct AW_spawn_unit_packet_t {
 	AW_cmd_type_t 				type;
-	AW_id_t 							id;
+	AW_id_t 							id,
+												cmd_mask;
 	AW_unit_type_t 				unit_type;
   int 									turn;
   short 								target_cx,
@@ -927,6 +928,7 @@ struct AW_generic_packet_t {
 	AW_cmd_type_t 				type;
 	AW_id_t 							id,
 												player_id,
+												cmd_type,
 												cmd_mask;
 	AW_unit_type_t 				unit_type;
   int 									turn;
@@ -973,6 +975,7 @@ struct AW_cmd_t {
 	AW_cmd_type_t   				type;
 	AW_unit_type_t 					unit_type;
 	AW_id_t 								id,
+													cmd_type,
 													cmd_mask;
 	AW_cmd_ptr 							fnext,
 													previous,
@@ -1148,10 +1151,11 @@ void 						CL_CopySelectionTo 						(AW_game_instance_t *gi, AW_client_ptr c, in
 void 						CL_RestoreGroupSelection			(AW_game_instance_t *gi, AW_client_ptr c, int gs);
 void 						CL_SelectNextSubGroup 				(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_CmdUnitOrderOnSelection		(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, bool push_back, bool attack_here, bool ground_only=false, AW_id_t cmd_mask=-1, int r_squared=-1, AW_ptr_t user_data=AW_null, AW_unit_order_cb_t unit_order_completed_cb=null, AW_unit_order_cb_t unit_order_failed_cb=null);
-void 						CL_CmdSpawnUnit								(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, AW_unit_type_t unit_type, AW_ptr_t user_data=AW_null);
+void 						CL_CmdUnitOrder 							(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, int to_x, int to_y, bool push_back, bool attack_here, bool ground_only=false, AW_id_t cmd_mask=-1, int r_squared=-1, AW_ptr_t user_data=AW_null, AW_unit_order_cb_t unit_order_completed_cb=null, AW_unit_order_cb_t unit_order_failed_cb=null);
+void 						CL_CmdSpawnUnit								(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t from_u, int to_x, int to_y, AW_unit_type_t unit_type, AW_ptr_t user_data=AW_null);
 void 						CL_CmdBuildOrder 							(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t builder_id, AW_id_t builder_player_id, AW_id_t unit_player_id, AW_unit_type_t unit_type, short target_cx, short target_cy, bool start_it);
 void 						CL_CmdCancelBuildOrder 				(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t builder_id, AW_id_t builder_player_id, AW_id_t unit_player_id, AW_id_t unit_id);
-void 						CL_CmdGeneric 								(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+void 						CL_CmdGeneric 								(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t cmd_type, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
 bool 						CL_HasOrder 									(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
 void 						CL_FocusOnUnits								(AW_game_instance_t *gi, AW_client_ptr c);
 void 						CL_UpdateWindowCloseButton		(AW_game_instance_t *gi, AW_client_ptr c);
@@ -1305,9 +1309,11 @@ typedef char 	(*AW_get_ability_shortcut_cb_t)(AW_game_instance_t *gi, AW_client_
 typedef bool 	(*AW_trigger_ability_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, short i, short cx, short cy);
 typedef void  (*AW_hud_info_cb_t)(AW_game_instance_t *gi, AW_client_ptr c);
 typedef void 	(*AW_on_death_cb_t)(AW_game_instance_t *, AW_player_ptr, AW_player_ptr, AW_unit_ptr);
-typedef void 	(*AW_on_spawn_unit_cb_t)(AW_game_instance_t *gi, AW_unit_ptr u);
+typedef void 	(*AW_on_spawn_unit_cb_t)(AW_game_instance_t *gi, AW_unit_ptr from_u, AW_unit_ptr u);
 typedef void 	(*AW_on_cancel_build_cb_t)(AW_game_instance_t *gi, AW_build_order_ptr b);
-typedef void 	(*AW_on_generic_cmd_cb_t)(AW_game_instance_t *gi, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+typedef void 	(*AW_on_generic_cmd_cb_t)(AW_game_instance_t *gi, AW_id_t cmd_type, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+typedef void  (*AW_on_unit_order_cb_t)(AW_game_instance_t *gi, AW_unit_ptr u, AW_unit_ptr target, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+typedef void  (*AW_draw_unit_target_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
 typedef void  (*AW_draw_pointer_cb_t)(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t type, int ability_id, short cx, short cy);
 typedef void  (*AW_draw_cursor_cb_t)(SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t type, int ability_id, int offx, int offy);
 
@@ -1484,6 +1490,8 @@ struct AW_game_instance_t {
   AW_on_spawn_unit_cb_t 					on_spawn_unit_cb;
   AW_on_cancel_build_cb_t 				on_cancel_build_cb;
   AW_on_generic_cmd_cb_t 					on_generic_cmd_cb;
+  AW_on_unit_order_cb_t 					on_unit_order_cb;
+  AW_draw_unit_target_cb_t 				draw_unit_target_cb;
   AW_draw_pointer_cb_t 						draw_pointer_cb;
   AW_draw_cursor_cb_t 						draw_cursor_cb;
 	/* ui */
@@ -1514,7 +1522,7 @@ void 							GI_UpdateTime											(AW_game_instance_t *gi);
 void 							GI_UpdateTurn 										(AW_game_instance_t *gi);
 void 							GI_Update													(AW_game_instance_t *gi);
 void 							GI_UpdatePlayers 									(AW_game_instance_t *gi);
-void 							GI_UpdateMiscs 					(AW_game_instance_t *gi);
+void 							GI_UpdateMiscs 										(AW_game_instance_t *gi);
 void 							GI_UpdateMaps											(AW_game_instance_t *gi);
 void 							GI_UpdateClients 									(AW_game_instance_t *gi);
 void 							GI_UpdateRemoteStores 						(AW_game_instance_t *gi);

@@ -36,12 +36,10 @@
 
 /* this determines the selection order */
 enum AW_moba_unit_type_t {
-  /* goblin */
-  AW_unit_type_g = 0,
+  /* rat */
+  AW_unit_type_r,
   /* skeleton */
   AW_unit_type_k,
-  /* orcs */
-  AW_unit_type_O,
   /* necromancer */
   AW_unit_type_N,
   /* mobs */
@@ -59,7 +57,7 @@ enum AW_moba_unit_type_t {
 };
 
 enum AW_moba_cmd_generic_t {
-  AW_moba_generic_learn_skill = 1,
+  AW_moba_generic_learn_skill         = 1,
 };
 
 /*
@@ -106,7 +104,7 @@ enum AW_moba_skills_t {
         TCOD_console_print_rect(con, START_HUD_INFO_X, START_HUD_INFO_Y, HUD_INFO_SIZE, HUD_HEIGHT-2, INFO); \
       if(BTN_IsClicked(gi, &moba_gi.central_hud_btns.btns[i]) \
       && mpl->xp >= XP) \
-        CL_CmdGeneric(gi, c, AW_moba_generic_learn_skill, cl->player_id, AW_moba_skill_##VAR, (AW_unit_type_t)AW_null, -1, -1); \
+        CL_CmdGeneric(gi, c, AW_moba_generic_learn_skill, 0, cl->player_id, AW_moba_skill_##VAR, (AW_unit_type_t)AW_null, -1, -1); \
       moba_gi.central_hud_btns.btn_count++; \
       i++; \
     } \
@@ -227,6 +225,9 @@ typedef short AW_castle_ptr;
 
 struct AW_castle_t {
   AW_unit_ptr       u;
+  AW_unit_ptr       rally_target;
+  short             rally_cx,
+                    rally_cy;
   AW_id_t           player_id;
   AW_castle_ptr     next,
                     previous,
@@ -343,24 +344,20 @@ void          MOBA_HUDInfoCastle            (AW_game_instance_t *gi, AW_client_p
 void          MOBA_HUDInfoGraveyard         (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
 void          MOBA_HUDInfoLibrary           (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
 str           MOBA_GetUnitName              (AW_game_instance_t *gi, AW_unit_type_t unit_type);
-void          MOBA_OnSpawnUnit              (AW_game_instance_t *gi, AW_unit_ptr u);
+void          MOBA_OnSpawnUnit              (AW_game_instance_t *gi, AW_unit_ptr from_u, AW_unit_ptr u);
 void          MOBA_OnCancelBuild            (AW_game_instance_t *gi, AW_build_order_ptr b);
-void          MOBA_GenericCmd               (AW_game_instance_t *gi, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+void          MOBA_GenericCmd               (AW_game_instance_t *gi, AW_id_t cmd_type, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
+void          MOBA_OnUnitOrder              (AW_game_instance_t *gi, AW_unit_ptr u, AW_unit_ptr target, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy);
 AW_unit_ptr   MOBA_GetCastle                (AW_game_instance_t *gi, AW_client_ptr c);
 AW_unit_ptr   MOBA_GetLibrary               (AW_game_instance_t *gi, AW_client_ptr c);
 void          MOBA_OpenWindow               (AW_game_instance_t *gi, AW_client_ptr c, int size_x, int size_y);
+void          MOBA_DrawUnitTarget           (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u);
 void          MOBA_DrawPointer              (AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, short cx, short cy);
 void          MOBA_DrawCursor               (SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, AW_unit_type_t unit_type, int ability_id, int offx, int offy);
 void          MOBA_DrawAttackCursor         (SDL_Surface *surface, AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, int offx, int offy);
 
 extern AW_moba_game_instance_t moba_gi;
 
-extern AW_ascii_t                   little_g[1],
-                                    big_O[2*2],
-                                    little_m[2*2],
-                                    big_C[8*8],
-                                    big_G[4*4],
-                                    big_T[5*5];
 extern AW_unit_class_t              unit_dic[MAX_UNIT_TYPE];
 
 /*

@@ -9,9 +9,9 @@ $(function(){
     if(e.keyCode === 123) {
       gui.Window.get().showDevTools();
     }
-    if(e.keyCode === 27) {
+    /*if(e.keyCode === 27) {
       win.close();
-    }
+    }*/
     if(e.keyCode == 13){
       console.log("click");
       window.location.href = $('#login-btn').attr("href");

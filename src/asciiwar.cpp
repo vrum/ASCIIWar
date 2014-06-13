@@ -1951,6 +1951,7 @@ void RS_Leech(AW_game_instance_t *gi, AW_remote_cmd_store_ptr r) {
                   cmd->id         = data->id;
                   cmd->unit_type  = data->unit_type;
                   cmd->turn       = data->turn;
+                  cmd->cmd_mask   = data->cmd_mask;
                   cmd->target_cx  = data->target_cx;
                   cmd->target_cy  = data->target_cy;
                   #if !REPLAY
@@ -1985,6 +1986,7 @@ void RS_Leech(AW_game_instance_t *gi, AW_remote_cmd_store_ptr r) {
                   cmd->type               = data->type;
                   cmd->id                 = data->id;
                   cmd->turn               = data->turn;
+                  cmd->cmd_type           = data->cmd_type;
                   cmd->cmd_mask           = data->cmd_mask;
                   cmd->unit_type          = data->unit_type;
                   cmd->player_id          = data->player_id;
@@ -2207,6 +2209,7 @@ void CL_Seed(AW_game_instance_t *gi, AW_client_ptr c) {
                 data.id         = cmd->id;
                 data.unit_type  = cmd->unit_type;
                 data.turn       = cmd->turn;
+                data.cmd_mask   = cmd->cmd_mask;
                 data.target_cx  = cmd->target_cx;
                 data.target_cy  = cmd->target_cy;
                 memcpy(pack_data, &data, sizeof(data));
@@ -2235,6 +2238,7 @@ void CL_Seed(AW_game_instance_t *gi, AW_client_ptr c) {
                 data.type               = AW_cmd_type_generic;
                 data.id                 = cmd->id;
                 data.turn               = cmd->turn;
+                data.cmd_type           = cmd->cmd_type;
                 data.cmd_mask           = cmd->cmd_mask;
                 data.unit_type          = cmd->unit_type;
                 data.player_id          = cmd->player_id;
@@ -2319,8 +2323,8 @@ void CL_Update(AW_game_instance_t *gi, AW_client_ptr c) {
     SO_Update(gi, c);
     CL_RenderSmokes(gi, c);
     CL_RenderEnvMap(gi, c);
-    CL_RenderSelectedUnitTargets(gi, c);
     CL_RenderUnits(gi, c);
+    CL_RenderSelectedUnitTargets(gi, c);
     CL_RenderBlood(gi, c);
     CL_RenderBurnTrace(gi, c);
     CL_RenderFloatingText(gi, c);
@@ -2559,20 +2563,34 @@ void CL_UpdateInputs(AW_game_instance_t *gi, AW_client_ptr c) {
         CL_CmdSpawnUnit(
           gi, 
           c, 
+          AW_null,
           gi->mouse.cx+cl->viewport_x, 
           gi->mouse.cy+cl->viewport_y,
-          AW_unit_type_g);
+          AW_unit_type_m);
     if(can_spawn
     && (GI_IsKeyReleased(gi, TCODK_CHAR, 'l')
     || GI_IsKeyReleased(gi, TCODK_CHAR, 'L'))
     && INSIDE_CON(gi->mouse.cx, gi->mouse.cy))
-      DO_TIMES(10)
+      DO_TIMES(9)
         CL_CmdSpawnUnit(
           gi, 
           c, 
+          AW_null,
           gi->mouse.cx+cl->viewport_x, 
           gi->mouse.cy+cl->viewport_y,
-          AW_unit_type_O);
+          AW_unit_type_k);
+    if(can_spawn
+    && (GI_IsKeyReleased(gi, TCODK_CHAR, 'o')
+    || GI_IsKeyReleased(gi, TCODK_CHAR, 'O'))
+    && INSIDE_CON(gi->mouse.cx, gi->mouse.cy))
+      DO_TIMES(100)
+        CL_CmdSpawnUnit(
+          gi, 
+          c, 
+          AW_null,
+          gi->mouse.cx+cl->viewport_x, 
+          gi->mouse.cy+cl->viewport_y,
+          AW_unit_type_r);
     if(gi->lbtn_up
     && cl->ability_here) {
       if(gi->trigger_ability_cb) {
@@ -2767,21 +2785,26 @@ void CL_RenderSelectedUnitTargets(AW_game_instance_t *gi, AW_client_ptr c) {
   while(u != AW_null) {
     AW_unit_t *un = &unit(u);
     if(UO_GetFrontType(gi, u) != AW_unit_order_none
-    && UO_GetFront(gi, u)->started
-    && !UO_GetFront(gi, u)->generated) { 
-      int x = UO_GetFront(gi, u)->click_cx - cl->viewport_x,
-          y = UO_GetFront(gi, u)->click_cy - cl->viewport_y;
-      if(INSIDE_CON(x, y)) {
-        switch(UO_GetFrontType(gi, u)) {
-          case AW_unit_order_move: {
-            pos_x += x;
-            pos_y += y;
-            k++;
-            attack_here = UO_GetFront(gi, u)->attack_here && attack_here;
-          } break;
+    && !UO_GetFront(gi, u)->generated) {
+      AW_unit_ptr u2 = AT(unit_map, UO_GetFront(gi, u)->click_cx, UO_GetFront(gi, u)->click_cy);
+      if(u2 == AW_null
+      || u2 == UO_GetFront(gi, u)->target) {
+        int x = UO_GetFront(gi, u)->click_cx - cl->viewport_x,
+            y = UO_GetFront(gi, u)->click_cy - cl->viewport_y;
+        if(INSIDE_CON(x, y)) {
+          switch(UO_GetFrontType(gi, u)) {
+            case AW_unit_order_move: {
+              pos_x += x;
+              pos_y += y;
+              k++;
+              attack_here = UO_GetFront(gi, u)->attack_here && attack_here;
+            } break;
+          }
         }
       }
     }
+    if(gi->draw_unit_target_cb)
+      gi->draw_unit_target_cb(gi, c, u);
     u = unit(u).snext[c];
   }
   if(k > 0) {
@@ -3191,7 +3214,7 @@ void CL_RenderUnits(AW_game_instance_t *gi, AW_client_ptr c) {
           int x = un2->pos_x+i-cl->viewport_x,
               y = un2->pos_y+j-cl->viewport_y,
               /* dir light is diag at the moment */
-              x1 = x + SIZE(un2),
+              x1 = x + (SIZE(un2)>>1),
               y1 = y + SIZE(un2);
           TCOD_line_init(x, y, x1, y1);
           do {
@@ -3917,12 +3940,62 @@ void CL_CmdUnitOrderOnSelection(AW_game_instance_t *gi, AW_client_ptr c, int to_
         cmd->unit_order_failed_cb     = unit_order_failed_cb;
         CS_InsertCmd(gi, cl->cs, r);
       }
+    } else {
+      if(gi->on_unit_order_cb)
+        gi->on_unit_order_cb(
+          gi, u, target, un->cmd_id, un->player_id, 
+          cmd_mask == -1 ? cl->cmd_id : cmd_mask, un->unit_type, 
+          to_x, to_y);
     }
     u = un->snext[c];
   }
 }
 
-void CL_CmdSpawnUnit(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y, AW_unit_type_t unit_type, AW_ptr_t user_data) {
+void CL_CmdUnitOrder(AW_game_instance_t *gi, AW_client_ptr c, AW_unit_ptr u, int to_x, int to_y, bool push_back, bool attack_here, bool ground_only, AW_id_t cmd_mask, int r_squared, AW_ptr_t user_data, AW_unit_order_cb_t unit_order_completed_cb, AW_unit_order_cb_t unit_order_failed_cb) {
+  BOUND(MAP_SIZE_X-1, to_x);
+  BOUND(MAP_SIZE_Y-1, to_y);
+  AW_client_t *cl = &client(c);
+  AW_unit_t *un   = &unit(u);
+  AW_player_ptr p = GI_GetPlayerPtr(gi, cl->player_id);
+  AW_player_t *pl = &player(p);
+  cl->cmd_id++;
+  bool vis            = PL_IsInFov(gi, p, to_x>>RANGE_SHIFT, to_y>>RANGE_SHIFT);
+  AW_unit_ptr target  = vis && !ground_only ? AT(unit_map, to_x, to_y) : AW_null;
+  /* we can't attack a unit from the same team */
+  target              = unit(target).team_id == pl->team_id && attack_here ? AW_null : target;
+  if(un->player_id == cl->player_id) {
+    AW_cmd_ptr r    = CMD_New(gi, un->cmd_id);
+    if(r != AW_null) {
+      AW_cmd_t *cmd           = &cmd(r);
+      cmd->turn               = gi->turn + CMD_TURN_SHIFT;
+      cmd->cmd_mask           = cmd_mask == -1 ? cl->cmd_id : cmd_mask;
+      cmd->type               = AW_cmd_type_unit_order;
+      cmd->r_squared          = 0;
+      cmd->target_cx          = (float)to_x;
+      cmd->target_cy          = (float)to_y;
+      cmd->click_cx           = to_x;
+      cmd->click_cy           = to_y;
+      cmd->target             = target != AW_null ? unit(target).cmd_id : AW_null;
+      cmd->target_player_id   = target != AW_null ? unit(target).player_id : AW_null;
+      cmd->target_cmd_id      = target != AW_null ? unit(target).cmd_id : AW_null;
+      cmd->attack_here        = attack_here;
+      cmd->time_stamp         = gi->game_time;
+      cmd->push_back          = push_back;
+      cmd->user_data          = user_data;
+      cmd->unit_order_completed_cb  = unit_order_completed_cb;
+      cmd->unit_order_failed_cb     = unit_order_failed_cb;
+      CS_InsertCmd(gi, cl->cs, r);
+    }
+  } else {
+    if(gi->on_unit_order_cb)
+      gi->on_unit_order_cb(
+        gi, u, target, un->cmd_id, un->player_id, 
+        cmd_mask == -1 ? cl->cmd_id : cmd_mask, un->unit_type, 
+        to_x, to_y);
+  }
+}
+
+void CL_CmdSpawnUnit(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t from_u, int to_x, int to_y, AW_unit_type_t unit_type, AW_ptr_t user_data) {
   BOUND(MAP_SIZE_X-1, to_x);
   BOUND(MAP_SIZE_Y-1, to_y);
   AW_client_t *cl = &client(c);
@@ -3933,6 +4006,7 @@ void CL_CmdSpawnUnit(AW_game_instance_t *gi, AW_client_ptr c, int to_x, int to_y
   cmd->unit_type  = unit_type;
   cmd->target_cx  = to_x;
   cmd->target_cy  = to_y;
+  cmd->cmd_mask   = from_u;
   cmd->user_data  = user_data;
   CS_InsertCmd(gi, cl->cs, r);
 }
@@ -3967,12 +4041,13 @@ void CL_CmdCancelBuildOrder(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t bui
   CS_InsertCmd(gi, cl->cs, r);
 }
 
-void CL_CmdGeneric(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy) {
+void CL_CmdGeneric(AW_game_instance_t *gi, AW_client_ptr c, AW_id_t cmd_type, AW_id_t id, AW_id_t player_id, AW_id_t cmd_mask, AW_unit_type_t unit_type, short target_cx, short target_cy) {
   AW_client_t *cl        = &client(c);
   AW_cmd_ptr r           = CMD_New(gi, id);
   AW_cmd_t *cmd          = &cmd(r);
   cmd->turn              = gi->turn + CMD_TURN_SHIFT;
   cmd->type              = AW_cmd_type_generic;
+  cmd->cmd_type          = cmd_type;
   cmd->cmd_mask          = cmd_mask;
   cmd->unit_type         = unit_type;
   cmd->target_cx         = target_cx;
@@ -4676,6 +4751,7 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
             data.id         = cmd->id;
             data.unit_type  = cmd->unit_type;
             data.turn       = cmd->turn;
+            data.cmd_mask   = cmd->cmd_mask;
             data.target_cx  = cmd->target_cx;
             data.target_cy  = cmd->target_cy;
             fwrite((unsigned char*)&data, sizeof(data), 1, file);
@@ -4702,6 +4778,7 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
             data.type               = AW_cmd_type_generic;
             data.id                 = cmd->id;
             data.turn               = cmd->turn;
+            data.cmd_type           = cmd->cmd_type;
             data.cmd_mask           = cmd->cmd_mask;
             data.unit_type          = cmd->unit_type;
             data.target_cx          = cmd->target_cx;
@@ -4743,8 +4820,12 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
               cmd->target_cy, 
               cmd->unit_type, 
               cmd->user_data);
-          if(gi->on_spawn_unit_cb)
-            gi->on_spawn_unit_cb(gi, u);
+          if(gi->on_spawn_unit_cb) {
+            assert(cmd->cmd_mask == AW_null
+                || pl->cmd_to_mem_unit_map.find(cmd->cmd_mask)
+                != pl->cmd_to_mem_unit_map.end());
+            gi->on_spawn_unit_cb(gi, cmd->cmd_mask == AW_null ? AW_null : pl->cmd_to_mem_unit_map[cmd->cmd_mask], u);
+          }
           break;
       }
     }
@@ -4854,6 +4935,7 @@ void PL_ProcessCmdStore(AW_game_instance_t *gi, AW_player_ptr p) {
           if(gi->on_generic_cmd_cb)
             gi->on_generic_cmd_cb(
               gi, 
+              cmd->cmd_type,
               cmd->id, 
               cmd->player_id, 
               cmd->cmd_mask, 
@@ -5022,12 +5104,13 @@ void PL_UpdateUnits(AW_game_instance_t *gi, AW_player_ptr p) {
       case AW_unit_order_move:
 #if THREADS        
         {
-          /* while 'un' is moving, it can happen things... */
           AW_unit_order_t *uo = UO_GetFront(gi, u);
-          /* towers and co don't move */
-          if(MOVE_SPEED(un) == 0)
-            UO_FreeFront(gi, u);
-          else
+          /* towers and co don't move 
+             it lags without that and I've forgot why 
+             does nothing and the uo can be used
+             as rally point */
+          if(MOVE_SPEED(un) == 0) {
+          } else
           /* if 'un' is following a friendly unit 
              which has stopped - 'un' might be now 
              following an enemy - it sometimes 
@@ -5167,24 +5250,24 @@ void PL_UpdateUnits(AW_game_instance_t *gi, AW_player_ptr p) {
              following an enemy - it sometimes 
              checks for the original friendly unit 
              to move */
-          if(uo->following_friend
-          && PL_CheckFollowFriend(gi, p, u, 2)) {
+          /*if(uo->following_friend
+          && PL_CheckFollowFriend(gi, p, u, 1)) {
             UO_FreeFront(gi, u);
             UO_FreeFront(gi, u);
             assert(UO_GetFrontType(gi, u) 
               == AW_unit_order_follow_target);
             done = false;
-          } else
+          } /*else
           /* 'un' is following an enemy by aggro  
              - it's not a precise target - 
              so 'un' might found another enemy 
              in it's attack range in which case
              it does attack it */
-          if(!uo->precise_target) {
+          /*if(!uo->precise_target) {
             UO_FreeFront(gi, u);
             if(PL_GenAttackEnemy(gi, p, u, uo->cmd_mask, uo->time_stamp, false, uo->following_friend))
               UO_GetFront(gi, u)->started = true;
-          }
+          }*/
         }
         break;
       case AW_unit_order_none: {
@@ -5226,7 +5309,7 @@ void PL_UpdateUnits(AW_game_instance_t *gi, AW_player_ptr p) {
                   bo->target_cy, 
                   bo->unit_type);
               if(gi->on_spawn_unit_cb)
-                gi->on_spawn_unit_cb(gi, u2);
+                gi->on_spawn_unit_cb(gi, u, u2);
               BO_Free(gi, u, b);
             }
           }
@@ -5329,7 +5412,7 @@ bool PL_StartMoveOrder(AW_game_instance_t *gi, AW_player_ptr p, AW_unit_ptr u) {
       un->path_len          = 0;
       un->path_index        = 0;
       wo->task_cost         += sqrt((un->pos_x - uo->target_cx) * (un->pos_x - uo->target_cx)
-                              + (un->pos_y - uo->target_cy) * (un->pos_y - uo->target_cy));
+                                  + (un->pos_y - uo->target_cy) * (un->pos_y - uo->target_cy));
       AW_worker_task_t *ta  = &gi->worker_tasks[p][w][wo->task_count++];
       ta->u                 = u;
       ta->pos_x             = un->pos_x;
@@ -5402,15 +5485,17 @@ float PL_PathCallback(int xFrom, int yFrom, int xTo, int yTo, void *user_data) {
               (short)xTo, 
               (short)yTo);
     /* this fun is bottleneck */
-    if(size==1) {
-      if(ON_HEAVY_PATH_MAP(xTo, yTo))
-        value = HEAVY_PATH_COST;
-    } else {
-      SOCLE(size)
-        if(ON_HEAVY_PATH_MAP(xTo+i, yTo+j)) {
+    if(result) {
+      if(size==1) {
+        if(ON_HEAVY_PATH_MAP(xTo, yTo))
           value = HEAVY_PATH_COST;
-          _finished = 1;
-        }
+      } else {
+        SOCLE(size)
+          if(ON_HEAVY_PATH_MAP(xTo+i, yTo+j)) {
+            value = HEAVY_PATH_COST;
+            _finished = 1;
+          }
+      }
     }
   }
   return result ? value : 0;
@@ -5645,7 +5730,9 @@ bool PL_MoveUnit(AW_game_instance_t *gi, AW_player_ptr p, AW_unit_ptr u) {
                    this one at the moment */
               } while(UO_GetFrontType(gi, u)
                    == AW_unit_order_move);
-              /* WARN: this has never been trully tested */
+              /* WARN: this has never been trully tested 
+                 it might be for making units to sleep in
+                 some case of following */
               if(UO_GetFrontType(gi, u) 
               == AW_unit_order_follow_target)
                 UO_GetFront(gi, u)->done = true;
@@ -5783,10 +5870,10 @@ bool PL_GenAttackEnemy(AW_game_instance_t *gi, AW_player_ptr p, AW_unit_ptr u, A
     attack_uo->cmd_mask           = cmd_mask;
     attack_uo->time_stamp         = time_stamp;
     attack_uo->r_squared          = 0;
-    attack_uo->d_squared          = 
-      MAX(0, ATTACK_RANGE(un) - 
+    attack_uo->d_squared          = ATTACK_RANGE(un);
+      /*MAX(0, ATTACK_RANGE(un) - 
       (MOVE_SPEED(target_un) / ATTACK_SPEED(un)) * 
-      (MOVE_SPEED(target_un) / ATTACK_SPEED(un)));
+      (MOVE_SPEED(target_un) / ATTACK_SPEED(un)));*/
     attack_uo->last_target_cx     = -1;
     attack_uo->precise_target       = precise_target;
     attack_uo->following_friend   = following_friend;
@@ -6205,9 +6292,9 @@ DWORD WINAPI PL_WorkerFun(void *params) {
         gi->close_map4[p][w][RANGE_MAP_SIZE_X*(dy>>RANGE_SHIFT)+(dx>>RANGE_SHIFT)] 
           = gi->close_map_mark4[p][w];
         TCOD_path_compute(
-          *path2, 
+          *path2,  
           ta->pos_x>>RANGE_SHIFT, 
-          ta->pos_y>>RANGE_SHIFT, 
+          ta->pos_y>>RANGE_SHIFT,
           dx>>RANGE_SHIFT, 
           dy>>RANGE_SHIFT);
         int len = TCOD_path_size(*path2);
@@ -6223,7 +6310,12 @@ DWORD WINAPI PL_WorkerFun(void *params) {
       if(ON_CLOSE_MAP(dx, dy) < wo->callback_data.start_mark)
         ON_CLOSE_MAP(dx, dy) = gi->close_map_mark3[p][w]++;
       wo->callback_data.mark = ON_CLOSE_MAP(dx, dy);
-      bool found_a_path = TCOD_path_compute(*path, ta->pos_x, ta->pos_y, dx, dy);
+      bool found_a_path;
+      /* it cannot follow and start from the end */
+      if(wo->callback_data.can_follow)
+        found_a_path = TCOD_path_compute(*path, ta->pos_x, ta->pos_y, dx, dy);
+      else
+        found_a_path = TCOD_path_compute(*path, dx, dy, ta->pos_x, ta->pos_y);
       assert(found_a_path);
       ta->path_len = TCOD_path_size(*path);
       assert(ta->path_len >= 0);
@@ -6231,13 +6323,18 @@ DWORD WINAPI PL_WorkerFun(void *params) {
         int *close_map = gi->close_map3[p][w][ta->size-1];
         ON_CLOSE_MAP(ta->pos_x, ta->pos_y) = wo->callback_data.mark;
         ON_CLOSE_MAP(dx, dy) = wo->callback_data.mark;
-        for(int k = 0; k < ta->path_len; k++) {
+        for(int k = 0; k < ta->path_len-(wo->callback_data.can_follow ? 0 : 1); k++) {
           short *path_pt_ptr = path_point_worker_ptr(k);
           int x, y;
-          TCOD_path_get(*path, k, &x, &y);
+          TCOD_path_get(*path, wo->callback_data.can_follow ? k : ta->path_len-1-1-k, &x, &y);
           path_pt_ptr[0] = x;
           path_pt_ptr[1] = y;
           ON_CLOSE_MAP(x, y) = wo->callback_data.mark;
+        }
+        if(!wo->callback_data.can_follow) {
+          short *path_pt_ptr = path_point_worker_ptr(ta->path_len-1);
+          path_pt_ptr[0] = dx;
+          path_pt_ptr[1] = dy;
         }
       }
     }
@@ -6371,6 +6468,8 @@ void GI_Init(AW_game_instance_t *gi, int _argc, char **_argv) {
   gi->on_spawn_unit_cb        = null;
   gi->on_cancel_build_cb      = null;
   gi->on_generic_cmd_cb       = null;
+  gi->on_unit_order_cb        = null;  
+  gi->draw_unit_target_cb     = null;
   gi->draw_pointer_cb         = null;
   gi->draw_cursor_cb          = null;
   #include "ui.cpp"

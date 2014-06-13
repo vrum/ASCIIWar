@@ -29,7 +29,7 @@ int main(int _argc, char **_argv) {
 	  CON_RES_X = 70;
 	  CON_RES_Y = 40;
 	#endif
-	TCOD_console_set_custom_font("./data/terminal.png", TCOD_FONT_LAYOUT_ASCII_INROW, 16, 32);
+	TCOD_console_set_custom_font("./data/terminal.png", TCOD_FONT_LAYOUT_ASCII_INROW, 16, 48);
   TCOD_console_init_root(CON_RES_X, CON_RES_Y, "ASCIIWar", false, TCOD_RENDERER_SDL);
   con = TCOD_console_new(CON_RES_X, CON_RES_Y);
   #if FULLSCREEN
@@ -68,7 +68,7 @@ int main(int _argc, char **_argv) {
   } else {
     game_desc.game_name             = "bahla";
     game_desc.player_count_per_team = 1+1;
-    game_desc.team_count            = 2;
+    game_desc.team_count            = 1;
   }
 
   // client game instance
